@@ -1,17 +1,28 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from "next/image";
 import Link from "next/link";
 import styles from "../styles/CampaignCard.module.css";
 import { useCampaign } from "../context/CampaignContext";
+import { getAdvertiserFile, getImageByAdNo, getApplicantsByAd, deleteApplicant } from '@/api/campaignApi';
+import EditApplicationModal from './EditApplicationModal';
+import PostUrlModal from './PostUrlModal';
 
 export default function CampaignCard({ campaign, openModal }) {
 
   const { activeTab } = useCampaign();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPostUrlModalOpen, setIsPostUrlModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [userStatus, setUserStatus] = useState(null);
+  const [applicants, setApplicants] = useState([]);
+  const [selectedApplicants, setSelectedApplicants] = useState([]);
 
-  const showRecruitingButton = activeTab === "recruiting" && campaign.ad_status === "approved";
-  const showEndedButton = activeTab === "ended" && campaign.ad_status === "ended";
+  const showRecruitingButton = activeTab === "recruiting" && 
+    campaign.adStatus === "APPROVED" && new Date() >= new Date(campaign.announceStart);
+  const showEndedButton = activeTab === "ended" && 
+    ["ENDED", "CLOSED", "TRIAL"].includes(campaign.adStatus);
 
   const COLORS = {
     recruiting: "#FF8484",  
@@ -22,7 +33,7 @@ export default function CampaignCard({ campaign, openModal }) {
 
   const STATUSTEXT = {
     approved: "모집중",
-    pending: "확인 절차중",
+    pending: "선정 절차중",
     selected: "게시물 URL 등록",
     rejected: "선발 완료(X)",
     completed: "광고 완료",
@@ -53,19 +64,136 @@ export default function CampaignCard({ campaign, openModal }) {
         return { ...baseStyle, backgroundColor: "#8BC34A", color: "#FFFFFF" };
     }
   };
+
+  const [advImage, setAdvImage] = useState(null);
+  const [adImage, setAdImage] = useState(null);
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+
+      const advImageData = await getAdvertiserFile(campaign.advertiser.advertiserNo);
+      setAdvImage(advImageData[0]);
+
+      const adImageData = await getImageByAdNo(campaign.adNo);
+      setAdImage(adImageData);
+
+    };
+
+    fetchData();
+  }, [campaign.adNo]);
+
+  // 사용자 상태 확인
+  useEffect(() => {
+    const fetchUserStatus = async () => {
+      if (activeTab === "applied" && campaign.adNo) {
+        try {
+          const applicantsData = await getApplicantsByAd(campaign.adNo);
+          setApplicants(applicantsData);
+          const userStatus = determineUserStatus(applicantsData);
+          setUserStatus(userStatus);
+        } catch (error) {
+          console.error('사용자 상태 조회 실패:', error);
+        }
+      }
+    };
+
+    fetchUserStatus();
+  }, [activeTab, campaign.adNo]);
+
+  // 사용자 상태 결정 함수
+  const determineUserStatus = (applicants) => {
+    if (!applicants || applicants.length === 0) return null;
+
+    const statuses = applicants.map(applicant => applicant.status);
+    
+    // selected: 하나라도 selected인 경우
+    if (statuses.some(status => status === 'SELECTED') && applicants.every(applicant => applicant.isSaved === true)) {
+      return 'selected';
+    }
+    
+    // rejected: 모든 펫이 rejected인 경우
+    if (statuses.every(status => status === 'REJECTED')) {
+      return 'rejected';
+    }
+    
+    // completed: 모든 펫이 completed인 경우
+    if (statuses.every(status => status === 'COMPLETED')) {
+      return 'completed';
+    }
+    
+    // pending: 그 외의 경우
+    return 'pending';
+  };
+
+  // 신청 취소 모달 열기
+  const handleCancelApplication = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!applicants || applicants.length === 0) {
+      alert('취소할 신청이 없습니다.');
+      return;
+    }
+
+    // 선택된 신청자 초기화
+    setSelectedApplicants([]);
+    setIsCancelModalOpen(true);
+  };
+
+  // 신청자 선택/해제
+  const handleApplicantSelect = (applicantNo) => {
+    setSelectedApplicants(prev => {
+      if (prev.includes(applicantNo)) {
+        return prev.filter(id => id !== applicantNo);
+      } else {
+        return [...prev, applicantNo];
+      }
+    });
+  };
+
+  // 선택된 신청자 삭제 실행
+  const handleConfirmCancel = async () => {
+    if (selectedApplicants.length === 0) {
+      alert('삭제할 신청을 선택해주세요.');
+      return;
+    }
+
+    const confirmed = window.confirm(`선택한 ${selectedApplicants.length}개의 신청을 정말로 취소하시겠습니까?`);
+    if (!confirmed) return;
+
+    try {
+      // 선택된 신청자에 대해서만 삭제 API 호출
+      const deletePromises = selectedApplicants.map(applicantNo => 
+        deleteApplicant(applicantNo)
+      );
+      
+      await Promise.all(deletePromises);
+      
+      alert('선택한 신청이 성공적으로 취소되었습니다.');
+      
+      // 모달 닫기 및 페이지 새로고침
+      setIsCancelModalOpen(false);
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('신청 취소 실패:', error);
+      alert('신청 취소에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
   
   const cardContent = (
     <div
       className={styles.campaignCard}
       style={{ borderTopColor: COLORS[activeTab] || COLORS.default }}>
       <div className={styles.imageContainer}>
-        <Image  
-          src={campaign.image}
+        {adImage && (<Image  
+          src={adImage.filePath}
           alt={campaign.title}
           width={410}
           height={160}
           className={styles.campaignImage}
-        />
+        />)}
       </div>
 
       <div className={styles.cardContent}>
@@ -74,21 +202,15 @@ export default function CampaignCard({ campaign, openModal }) {
         <div className={styles.brandSection}>
           <div className={styles.brandInfo}>
             <div className={styles.brandIcon}>
-              <svg width="10" height="9" viewBox="0 0 10 9" fill="none">
-                <path
-                  d="M5 8.5C7.76142 8.5 10 6.26142 10 3.5C10 0.738579 7.76142 -1.5 5 -1.5C2.23858 -1.5 0 0.738579 0 3.5C0 6.26142 2.23858 8.5 5 8.5Z"
-                  fill="#8BC34A"
-                />
-                <path
-                  d="M3.75 3.875L4.375 4.5L6.25 2.625"
-                  stroke="white"
-                  strokeWidth="0.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              {advImage && (<Image  
+                src={advImage.filePath}
+                alt={campaign.advertiser.name}
+                width={32}
+                height={32}
+                className={styles.brandImage}
+              />)}
             </div>
-            <span className={styles.brandName}>{campaign.brand}</span>
+            <span className={styles.brandName}>{campaign?.advertiser?.name}</span>
           </div>
           {showRecruitingButton ? (
             <span
@@ -104,30 +226,43 @@ export default function CampaignCard({ campaign, openModal }) {
             >
               {STATUSTEXT["ended"]}
             </span>
-          ) : campaign.applicant_status === "applied" ? (
+          ) : campaign.adStatus === "APPROVED" && activeTab === "applied" ? (
             <div className={styles.actionButtons}>
-              <button style={getStatusStyle("applied")} className={styles.actionBtn}>
+              <button style={getStatusStyle("applied")} className={styles.actionBtn}
+                onClick={(e) => {
+                  e.preventDefault(); 
+                  e.stopPropagation();
+                  setIsEditModalOpen(true);
+                }}>
                 수정
               </button>
-              <button style={getStatusStyle("applied")} className={styles.actionBtn}>
-                삭제
+              <button 
+                style={getStatusStyle("applied")} 
+                className={styles.actionBtn}
+                onClick={handleCancelApplication}
+              >
+                취소
               </button>
             </div>
-          ) : campaign.applicant_status === "selected" ? (
+          ) : userStatus === "selected" ? (
             <button
-              onClick={() => openModal(campaign)}
-              style={getStatusStyle(campaign.applicant_status)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsPostUrlModalOpen(true);
+              }}
+              style={getStatusStyle("selected")}
               className={styles.statusButton}
             >
-              {STATUSTEXT[campaign.applicant_status]}
+              {STATUSTEXT["selected"]}
             </button>
-          ) : (
+          ) : userStatus ? (
             <span 
-              style={getStatusStyle(campaign.applicant_status)}
+              style={getStatusStyle(userStatus)}
               className={styles.statusSpan}>
-              {STATUSTEXT[campaign.applicant_status]}
+              {STATUSTEXT[userStatus]}
             </span>
-          )}
+          ) : null}
         </div>
         <div className={styles.cardFooter}>
           <div className={styles.periodInfo}>
@@ -137,7 +272,7 @@ export default function CampaignCard({ campaign, openModal }) {
                 fill="#6B7280"
               />
             </svg>
-            <span className={styles.period}>{campaign.announce_start}~{campaign.announce_end}</span>
+            <span className={styles.period}>{campaign.announceStart}~{campaign.announceEnd}</span>
           </div>
           <span className={styles.applicants}>신청자 수 : {campaign.applicants}</span>
         </div>
@@ -145,13 +280,74 @@ export default function CampaignCard({ campaign, openModal }) {
     </div>
   );
 
-  if (campaign.ad_no === 1) {
-    return (
-      <Link href={`/campaign/${campaign.ad_no}`} className={styles.campaignCardLink}>
+  return (
+    <>
+      <Link href={`/campaign/info/${campaign.adNo}`} className={styles.campaignCardLink}>
         {cardContent}
       </Link>
-    );
-  }
+      
+      <EditApplicationModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        adNo={campaign.adNo}
+      />
+      
+      <PostUrlModal
+        isOpen={isPostUrlModalOpen}
+        onClose={() => setIsPostUrlModalOpen(false)}
+        adNo={campaign.adNo}
+      />
 
-  return <div className={styles.campaignCardLink}>{cardContent}</div>;
+      {/* 신청 취소 모달 */}
+      {isCancelModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsCancelModalOpen(false)}>
+          <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>신청 취소</h3>
+              <button 
+                className={styles.closeButton}
+                onClick={() => setIsCancelModalOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              <p className={styles.modalDescription}>
+                체험단 신청을 취소할 반려 동물을 선택해주세요
+              </p>
+              
+              <div className={styles.applicantList}>
+                {applicants.map((applicant) => (
+                  <div key={applicant.applicantNo} className={styles.applicantItem}>
+                    <label className={styles.applicantLabel}>
+                      <input
+                        type="checkbox"
+                        checked={selectedApplicants.includes(applicant.applicantNo)}
+                        onChange={() => handleApplicantSelect(applicant.applicantNo)}
+                        className={styles.checkbox}
+                      />
+                      <span className={styles.petName}>
+                        {applicant.pet?.name || `펫 ${applicant.applicantNo}`}
+                      </span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className={styles.modalActions}>
+              <button
+                className={styles.confirmButton}
+                onClick={handleConfirmCancel}
+                disabled={selectedApplicants.length === 0}
+              >
+                체험단 신청 취소 ({selectedApplicants.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

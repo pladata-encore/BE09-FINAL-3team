@@ -3,7 +3,13 @@ import React, { useState } from "react";
 import styles from "./ActivityDetailModal.module.css";
 import Image from "next/image";
 
-const ActivityDetailModal = ({ isOpen, onClose, activityData }) => {
+const ActivityDetailModal = ({
+  isOpen,
+  onClose,
+  activityData,
+  onDelete,
+  isEditMode = false, // 수정 모드 여부를 받아옴
+}) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -70,18 +76,39 @@ const ActivityDetailModal = ({ isOpen, onClose, activityData }) => {
         {/* 이미지 영역 */}
         <div className={styles.imageSection}>
           <div className={styles.imageContainer}>
-            <Image
-              src={
+            {(() => {
+              const imageSrc =
+                activityData.images?.[currentImageIndex]?.preview ||
                 activityData.images?.[currentImageIndex] ||
                 activityData.image ||
-                "/campaign-1.jpg"
-              }
-              alt="Activity Image"
-              layout="fill"
-              objectFit="cover"
-              onClick={handleImageClick}
-              style={{ cursor: "pointer" }}
-            />
+                "/campaign-1.jpg";
+
+              return imageSrc &&
+                imageSrc.trim() !== "" &&
+                imageSrc !== "undefined" ? (
+                <Image
+                  src={imageSrc}
+                  alt="Activity Image"
+                  layout="fill"
+                  objectFit="cover"
+                  onClick={handleImageClick}
+                  style={{ cursor: "pointer" }}
+                  onError={(e) => {
+                    // 이미지 로드 실패 시 기본 이미지로 대체
+                    e.target.src = "/campaign-1.jpg";
+                  }}
+                />
+              ) : (
+                <div className={styles.imagePlaceholder}>
+                  <Image
+                    src="/campaign-1.jpg"
+                    alt="Default Activity Image"
+                    layout="fill"
+                    objectFit="cover"
+                  />
+                </div>
+              );
+            })()}
 
             {/* 이미지 네비게이션 버튼 */}
             <div className={styles.imageNavigation}>
@@ -160,6 +187,20 @@ const ActivityDetailModal = ({ isOpen, onClose, activityData }) => {
             />
           </div>
         </div>
+
+        {/* 액션 버튼 영역 */}
+        <div className={styles.actionSection}>
+          <div className={styles.buttonRow}>
+            {onDelete && (
+              <button
+                className={styles.deleteButton}
+                onClick={() => onDelete(activityData)}
+              >
+                활동이력 삭제
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 풀스크린 이미지 모달 */}
@@ -172,18 +213,6 @@ const ActivityDetailModal = ({ isOpen, onClose, activityData }) => {
             className={styles.fullscreenContainer}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              className={styles.fullscreenCloseButton}
-              onClick={handleFullscreenClose}
-            >
-              <Image
-                src="/icons/close-icon.svg"
-                alt="Close"
-                width={25}
-                height={24}
-              />
-            </button>
-
             {/* 풀스크린 이미지 네비게이션 */}
             <div className={styles.fullscreenNavigation}>
               <button
@@ -210,16 +239,37 @@ const ActivityDetailModal = ({ isOpen, onClose, activityData }) => {
               </button>
             </div>
 
-            <Image
-              src={
+            {(() => {
+              const imageSrc =
+                activityData.images?.[currentImageIndex]?.preview ||
                 activityData.images?.[currentImageIndex] ||
                 activityData.image ||
-                "/campaign-1.jpg"
-              }
-              alt="Activity Image Fullscreen"
-              layout="fill"
-              objectFit="contain"
-            />
+                "/campaign-1.jpg";
+
+              return imageSrc &&
+                imageSrc.trim() !== "" &&
+                imageSrc !== "undefined" ? (
+                <Image
+                  src={imageSrc}
+                  alt="Activity Image Fullscreen"
+                  layout="fill"
+                  objectFit="contain"
+                  onError={(e) => {
+                    // 이미지 로드 실패 시 기본 이미지로 대체
+                    e.target.src = "/campaign-1.jpg";
+                  }}
+                />
+              ) : (
+                <div className={styles.imagePlaceholder}>
+                  <Image
+                    src="/campaign-1.jpg"
+                    alt="Default Activity Image Fullscreen"
+                    layout="fill"
+                    objectFit="contain"
+                  />
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

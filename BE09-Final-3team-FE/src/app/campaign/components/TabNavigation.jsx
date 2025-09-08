@@ -1,3 +1,5 @@
+"use client";
+
 import styles from "../styles/TabNavigation.module.css";
 import { useCampaign } from "../context/CampaignContext";
 

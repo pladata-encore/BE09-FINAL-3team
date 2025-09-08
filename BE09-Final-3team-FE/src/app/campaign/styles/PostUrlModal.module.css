@@ -7,8 +7,8 @@
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
   padding: 20px;
 }
@@ -113,8 +113,8 @@
   margin-bottom: 0;
 }
 
-/* Campaign Info */
-.campaignInfo {
+/* Form Elements */
+.formGroup {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -135,14 +135,6 @@
   color: #EF4444;
   font-size: 14px;
   font-weight: 400;
-}
-
-.campaignName {
-  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 2;
-  color: #000000;
 }
 
 /* Input Group */
@@ -193,6 +185,92 @@
   color: #6B7280;
 }
 
+/* Select and Input Styles */
+.select,
+.input {
+  width: 100%;
+  height: 50px;
+  padding: 15.5px 13px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  background: #FFFFFF;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.19;
+  color: #000000;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.select {
+  cursor: pointer;
+}
+
+.select:focus,
+.input:focus {
+  border-color: #8BC34A;
+}
+
+.select::placeholder,
+.input::placeholder {
+  color: #ADAEBC;
+}
+
+/* Rejection Warning */
+.rejectionWarning {
+  margin: 16px 0;
+  padding: 16px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  border-left: 4px solid #DC2626;
+}
+
+.warningHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.warningTitle {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #DC2626;
+}
+
+.rejectionReason {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #991B1B;
+  margin: 0 0 8px 0;
+  padding: 8px 12px;
+  background-color: #FEE2E2;
+  border-radius: 6px;
+}
+
+.warningMessage {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  color: #7F1D1D;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Error Message */
+.errorMessage {
+  color: #EF4444;
+  font-size: 14px;
+  padding: 8px 12px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 /* Action Buttons */
 .modalActions {
   background: #FFFFFF;
@@ -201,7 +279,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin: 0 -32px -32px -32px;
+  margin: 0;
 }
 
 .cancelButton {
@@ -247,6 +325,76 @@
   cursor: not-allowed;
 }
 
+/* Status Container */
+.statusContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  padding: 32px 0;
+}
+
+.reviewingStatus,
+.approvedStatus {
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.statusIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.statusTitle {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 12px 0;
+}
+
+.statusMessage {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.submittedUrl,
+.approvedUrl {
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: left;
+}
+
+.urlLabel {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B7280;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.urlLink {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: #3B82F6;
+  text-decoration: none;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.urlLink:hover {
+  text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .modalContainer {
@@ -265,7 +413,7 @@
   
   .modalActions {
     padding: 20px 24px;
-    margin: 0 -24px -24px -24px;
+    margin: 0;
   }
   
   .headerContent {
@@ -275,5 +423,18 @@
   
   .headerText {
     width: 100%;
+  }
+
+  .statusContainer {
+    min-height: 150px;
+    padding: 24px 0;
+  }
+
+  .statusTitle {
+    font-size: 16px;
+  }
+
+  .statusMessage {
+    font-size: 13px;
   }
 }

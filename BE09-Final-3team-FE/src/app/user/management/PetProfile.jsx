@@ -1,63 +1,167 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styles from "./PetProfile.module.css";
 import Image from "next/image";
 import PetProfileRegistration from "./PetProfileRegistration";
 import PetstarModal from "./PetstarModal";
+import Link from "next/link";
+import { getPets, deletePet, applyPetStar } from "../../../api/petApi";
 
 const PetProfile = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("All Types");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPetstarModalOpen, setIsPetstarModalOpen] = useState(false);
+  const [selectedPet, setSelectedPet] = useState(null);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [pets, setPets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const pets = [
-    {
-      id: 1,
-      name: "황금이",
-      breed: "골든 리트리버",
-      age: "3살",
-      health: "Healthy",
-      description:
-        "장난기 많고 에너지가 넘칩니다. 공놀이와 해변에서 수영하는 것을 좋아합니다.",
-      image: "/user/dog.png",
-      healthPercentage: 100,
-      healthColor: "#8BC34A",
-      isPetStar: true, // 펫스타 상태 추가
-    },
-    {
-      id: 2,
-      name: "루나",
-      breed: "샴 고양이",
-      age: "2살",
-      health: "Healthy",
-      description: "독립적이고 우아한 성격입니다.",
-      image: "/user/cat.png",
-      healthPercentage: 85,
-      healthColor: "#F5A623",
-      isPetStar: false, // 펫스타가 아닌 경우
-    },
-    {
-      id: 3,
-      name: "찰리",
-      breed: "푸른 마코 앵무",
-      age: "5살",
-      health: "건강 검진 예정",
-      description: "수다스럽고 사교적인 성격입니다.",
-      image: "/user/bird.png",
-      healthPercentage: 60,
-      healthColor: "#FF7675",
-      isPetStar: false, // 펫스타가 아닌 경우
-    },
-  ];
+  // 반려동물 목록 조회
+  const fetchPets = async () => {
+    try {
+      setLoading(true);
+
+      // 로컬 스토리지에서 토큰과 사용자 정보 가져오기
+      const token = localStorage.getItem("token");
+      const userNo = localStorage.getItem("userNo");
+
+      const data = await getPets();
+
+      console.log("API 응답 전체:", data);
+      console.log("반려동물 데이터 배열:", data.data);
+      if (data.data && data.data.length > 0) {
+        data.data.forEach((pet, index) => {
+          console.log(`반려동물 ${index + 1} 전체 데이터:`, pet);
+          console.log(`반려동물 ${index + 1} snsId 필드:`, pet.snsId);
+          console.log(
+            `반려동물 ${index + 1} snsUsername 필드:`,
+            pet.snsUsername
+          );
+        });
+      }
+      setPets(data.data || []);
+    } catch (error) {
+      console.error("반려동물 목록 조회 실패:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "반려동물 목록 조회에 실패했습니다.";
+      setError(errorMessage);
+      setPets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 반려동물 목록 조회
+  useEffect(() => {
+    fetchPets();
+  }, []);
+
+  // 반려동물 삭제
+  const handleDeletePet = async (petNo) => {
+    try {
+      await deletePet(petNo);
+
+      // 삭제 성공 시 목록 새로고침
+      fetchPets();
+      setIsDeleteModalOpen(false);
+      showSuccessMessage("반려동물이 삭제되었습니다.");
+    } catch (error) {
+      console.error("반려동물 삭제 실패:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "반려동물 삭제에 실패했습니다.";
+      showSuccessMessage(errorMessage);
+    }
+  };
+
+  // PetStar 신청
+  const handleApplyPetStar = async (petNo) => {
+    try {
+      await applyPetStar(petNo);
+
+      // 신청 성공 시 목록 새로고침
+      fetchPets();
+      setIsPetstarModalOpen(false);
+      showSuccessMessage("펫스타 신청이 완료되었습니다.");
+    } catch (error) {
+      console.error("PetStar 신청 실패:", error);
+      // 실패 시 PetStar 신청 모달을 닫고 구체적인 실패 사유 표시
+      setIsPetstarModalOpen(false);
+
+      // axios 에러에서 메시지 추출
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "PetStar 신청에 실패했습니다.";
+
+      // 실패 사유에 따른 메시지 구분
+      let failureMessage = "PetStar 신청에 실패했습니다.";
+
+      if (errorMessage.includes("이미 PetStar 신청이 진행 중입니다")) {
+        failureMessage =
+          "이미 PetStar 신청이 진행 중입니다.\n\n신청 결과를 기다려주세요.";
+      } else if (
+        errorMessage.includes("이미 PetStar로 승인되어 활성화되었습니다")
+      ) {
+        failureMessage =
+          "이미 PetStar로 승인되어 활성화되었습니다.\n\n다른 반려동물로 신청해보세요.";
+      } else if (
+        errorMessage.includes("이전에 PetStar 신청이 거절되었습니다")
+      ) {
+        failureMessage =
+          "이전에 PetStar 신청이 거절되었습니다.\n\n다른 반려동물로 신청해보세요.";
+      } else if (errorMessage.includes("권한이 없습니다")) {
+        failureMessage =
+          "PetStar 신청 권한이 없습니다.\n\n로그인 상태를 확인해주세요.";
+      } else if (errorMessage.includes("반려동물을 찾을 수 없습니다")) {
+        failureMessage =
+          "반려동물 정보를 찾을 수 없습니다.\n\n반려동물 정보를 다시 확인해주세요.";
+      } else if (errorMessage.includes("네트워크")) {
+        failureMessage =
+          "네트워크 연결을 확인해주세요.\n\n잠시 후 다시 시도해주세요.";
+      } else {
+        // 기타 에러는 백엔드에서 전달된 메시지 그대로 사용
+        failureMessage = errorMessage;
+      }
+
+      showSuccessMessage(failureMessage);
+    }
+  };
 
   const hasPets = pets.length > 0;
+  const handleEditPet = (pet) => {
+    setSelectedPet(pet);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedPet(null);
+  };
+
+  const showSuccessMessage = (message) => {
+    setSuccessMessage(message);
+    setIsSuccessModalOpen(true);
+  };
 
   return (
     <div className={styles.container}>
-      {!hasPets ? (
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "50px" }}>
+          <p>반려동물 정보를 불러오는 중...</p>
+        </div>
+      ) : error ? (
+        <div style={{ textAlign: "center", padding: "50px", color: "red" }}>
+          <p>오류: {error}</p>
+          <button onClick={fetchPets}>다시 시도</button>
+        </div>
+      ) : !hasPets ? (
         <section className={styles.headerSectionEmpty}>
           <div className={styles.headerContent}>
             <h1 className={styles.pageTitle}>펫 프로필</h1>
@@ -71,7 +175,9 @@ const PetProfile = () => {
             </p>
             <button
               className={styles.createButton}
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setIsModalOpen(true);
+              }}
             >
               첫 번째 프로필 만들기
             </button>
@@ -95,162 +201,163 @@ const PetProfile = () => {
 
           <section className={styles.mainSection}>
             <div className={styles.contentWrapper}>
-              <div className={styles.header}>
-                <div className={styles.titleSection}>
-                  <h2 className={styles.sectionTitle}>반려동물 프로필</h2>
-                  <p className={styles.sectionDescription}>
-                    반려동물의 모든 정보를 관리하고 확인하세요
-                  </p>
-                </div>
-
-                <div className={styles.searchFilterSection}>
-                  <div className={styles.searchContainer}>
-                    <div className={styles.searchIcon}>
-                      <Image
-                        src="/user/search.png"
-                        alt="Search"
-                        width={16}
-                        height={16}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Search pets..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className={styles.searchInput}
-                    />
-                  </div>
-
-                  <div className={styles.filterContainer}>
-                    <select
-                      value={selectedType}
-                      onChange={(e) => setSelectedType(e.target.value)}
-                      className={styles.filterSelect}
-                    >
-                      <option value="All Types">All Types</option>
-                      <option value="Dogs">Dogs</option>
-                      <option value="Cats">Cats</option>
-                      <option value="Birds">Birds</option>
-                    </select>
-                    <div className={styles.dropdownIcon}>
-                      <Image
-                        src="/user/down.png"
-                        alt="Dropdown"
-                        width={12}
-                        height={7}
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div className={styles.titleSection}>
+                <h2 className={styles.sectionTitle}>반려동물 프로필</h2>
+                <p className={styles.sectionDescription}>
+                  반려동물의 모든 정보를 관리하고 확인하세요
+                </p>
               </div>
 
               <div className={styles.petGrid}>
-                {pets.map((pet) => (
-                  <div key={pet.id} className={styles.petCard}>
-                    <div className={styles.petImageContainer}>
-                      <div className={styles.petImage}>
-                        <Image
-                          src={pet.image}
-                          alt={pet.name}
-                          width={409}
-                          height={192}
-                          className={styles.petImage}
-                        />
-                      </div>
-                      <div
-                        className={styles.healthBadge}
-                        style={{ backgroundColor: pet.healthColor }}
-                      >
-                        {pet.healthPercentage}%
-                      </div>
-                    </div>
-
-                    <div className={styles.petInfo}>
-                      <div className={styles.petHeader}>
-                        <div className={styles.petNameBreedRow}>
-                          <span className={styles.petName}>{pet.name}</span>
-                          <span className={styles.breedText}>
-                            ({pet.breed})
-                          </span>
-                          {pet.isPetStar && (
+                {pets.map((pet) => {
+                  console.log(`반려동물 ${pet.name} 데이터:`, pet);
+                  console.log(`반려동물 ${pet.name} snsId:`, pet.snsId);
+                  console.log(
+                    `반려동물 ${pet.name} snsUsername:`,
+                    pet.snsUsername
+                  );
+                  return (
+                    <div key={pet.petNo} className={styles.petCard}>
+                      <div className={styles.petImageContainer}>
+                        <Link href={`/user/portfolio?petId=${pet.petNo}`}>
+                          <div className={styles.petImage}>
                             <Image
-                              src="/user/medal.svg"
-                              alt="PetStar"
-                              width={20}
-                              height={18}
-                              className={styles.petStarBadge}
+                              src={
+                                pet.imageUrl && pet.imageUrl.trim() !== ""
+                                  ? pet.imageUrl
+                                  : "/user/dog.png"
+                              }
+                              alt={pet.name}
+                              width={409}
+                              height={192}
+                              className={styles.petImage}
+                              unoptimized
+                              onError={(e) => {
+                                e.target.src = "/user/dog.png";
+                              }}
                             />
-                          )}
+                          </div>
+                        </Link>
+                      </div>
+
+                      <div className={styles.petInfo}>
+                        <div className={styles.petHeader}>
+                          <div className={styles.petNameBreedRow}>
+                            <div className={styles.petNameSection}>
+                              <span className={styles.petName}>{pet.name}</span>
+                              <span className={styles.breedText}>
+                                ({pet.type})
+                              </span>
+                              {pet.isPetStar && (
+                                <Image
+                                  src="/user/medal.svg"
+                                  alt="PetStar"
+                                  width={20}
+                                  height={18}
+                                  className={styles.petStarBadge}
+                                />
+                              )}
+                            </div>
+                            <div className={styles.petRightSection}>
+                              <span className={styles.ageText}>
+                                {pet.age}살
+                              </span>
+                            </div>
+                          </div>
+                          <div className={styles.petMetaRow}></div>
                         </div>
-
-                        <div className={styles.petMetaRow}>
-                          <div className={styles.healthInfo}>
-                            <Image
-                              src="/user/heartVec.png"
-                              alt="Health"
-                              width={16}
-                              height={16}
-                              className={styles.healthIcon}
+                        <div className={styles.genderText}>
+                          {pet.gender === "M"
+                            ? "수컷"
+                            : pet.gender === "F"
+                            ? "암컷"
+                            : pet.gender}
+                        </div>
+                        {pet.snsUsername &&
+                        pet.snsUsername.trim() !== "" &&
+                        pet.snsUsername !== null ? (
+                          <div className={styles.snsUrlContainer}>
+                            <img
+                              src="/user/instagram.svg"
+                              alt="SNS"
+                              className={styles.snsIcon}
                             />
-                            <span className={styles.healthText}>
-                              {pet.health}
+                            <span className={styles.snsUrlText}>
+                              @{pet.snsUsername}
                             </span>
+                          </div>
+                        ) : (
+                          <div
+                            className={`${styles.snsUrlContainer} ${styles.noSnsUrl}`}
+                          >
+                            <img
+                              src="/user/instagram.svg"
+                              alt="SNS"
+                              className={styles.snsIcon}
+                            />
+                            <span className={styles.snsUrlText}>
+                              SNS 프로필 없음
+                            </span>
+                          </div>
+                        )}
+                        <div className={styles.petDescription}>
+                          {pet.description}
+                        </div>
+                        <div className={styles.petFooter}>
+                          <div className={styles.petActions}>
+                            {!pet.isPetStar && (
+                              <button
+                                className={styles.actionButton}
+                                onClick={() => {
+                                  setSelectedPet(pet);
+                                  setIsPetstarModalOpen(true);
+                                }}
+                              >
+                                <Image
+                                  src={`/user/medal.png`}
+                                  alt="Medal"
+                                  width={18}
+                                  height={18}
+                                />
+                              </button>
+                            )}
+                            <button
+                              className={styles.actionButton}
+                              onClick={() => handleEditPet(pet)}
+                            >
+                              <Image
+                                src="/user/edit.png"
+                                alt="Edit"
+                                width={16}
+                                height={16}
+                              />
+                            </button>
+                            <button
+                              className={styles.actionButton}
+                              onClick={() => {
+                                setSelectedPet(pet);
+                                setIsDeleteModalOpen(true);
+                              }}
+                            >
+                              <Image
+                                src="/user/garbage.png"
+                                alt="Delete"
+                                width={14}
+                                height={16}
+                              />
+                            </button>
                           </div>
                         </div>
                       </div>
-                      <div className={styles.ageText}>{pet.age}</div>
-
-                      <div className={styles.petDescription}>
-                        {pet.description}
-                      </div>
-
-                      <div className={styles.petFooter}>
-                        <div className={styles.petActions}>
-                          {!pet.isPetStar && (
-                            <button
-                              className={styles.actionButton}
-                              onClick={() => setIsPetstarModalOpen(true)}
-                            >
-                              <Image
-                                src={`/user/medal.png`}
-                                alt="Medal"
-                                width={18}
-                                height={18}
-                              />
-                            </button>
-                          )}
-                          <button
-                            className={styles.actionButton}
-                            onClick={() => setIsModalOpen(true)}
-                          >
-                            <Image
-                              src="/user/edit.png"
-                              alt="Edit"
-                              width={16}
-                              height={16}
-                            />
-                          </button>
-                          <button
-                            className={styles.actionButton}
-                            onClick={() => setIsDeleteModalOpen(true)}
-                          >
-                            <Image
-                              src="/user/garbage.png"
-                              alt="Delete"
-                              width={14}
-                              height={16}
-                            />
-                          </button>
-                        </div>
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 <div
                   className={styles.addPetCard}
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={() => {
+                    setIsModalOpen(true);
+                  }}
                   style={{ cursor: "pointer" }}
                 >
                   <div className={styles.addPetIcon}>
@@ -261,9 +368,9 @@ const PetProfile = () => {
                       height={21}
                     />
                   </div>
-                  <h3 className={styles.addPetTitle}>Add New Pet</h3>
+                  <h3 className={styles.addPetTitle}>반려동물 등록하기</h3>
                   <p className={styles.addPetDescription}>
-                    Create a profile for your new family member
+                    새로운 반려동물의 프로필을 등록해보세요!
                   </p>
                 </div>
               </div>
@@ -275,7 +382,11 @@ const PetProfile = () => {
       {/* 펫 프로필 등록 모달 */}
       <PetProfileRegistration
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
+        petData={selectedPet}
+        isEditMode={!!selectedPet}
+        onSuccess={fetchPets}
+        onSuccessMessage={showSuccessMessage}
       />
 
       {/* 삭제 확인 모달 */}
@@ -303,7 +414,11 @@ const PetProfile = () => {
             >
               <button
                 className={styles.deleteButton}
-                onClick={() => setIsDeleteModalOpen(false)}
+                onClick={() => {
+                  if (selectedPet) {
+                    handleDeletePet(selectedPet.petNo);
+                  }
+                }}
               >
                 삭제
               </button>
@@ -322,7 +437,43 @@ const PetProfile = () => {
       <PetstarModal
         isOpen={isPetstarModalOpen}
         onClose={() => setIsPetstarModalOpen(false)}
+        selectedPet={selectedPet}
+        onApply={handleApplyPetStar}
       />
+
+      {/* 성공 메시지 모달 */}
+      {isSuccessModalOpen && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setIsSuccessModalOpen(false)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <h1 className={styles.modalTitle}>알림</h1>
+              <button
+                className={styles.modalClose}
+                onClick={() => setIsSuccessModalOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalMessage}>{successMessage}</p>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.modalButton}
+                onClick={() => setIsSuccessModalOpen(false)}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

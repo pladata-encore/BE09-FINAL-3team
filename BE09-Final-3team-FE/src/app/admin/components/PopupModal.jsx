@@ -7,41 +7,77 @@ export default function PopupModal({
   onClose,
   onDelete,
   actionType,
-  targetKeyword="",
+  targetKeyword = "",
 }) {
   const [deleteReason, setDeleteReason] = useState("");
   const getModalContent = () => {
-    switch(actionType) {
+    switch (actionType) {
       case "delete":
-      return{
-        title:"삭제하기",
-        label:"광고 제목",
-        description:"광고를 삭제하시겠습니까?",
-        confirmText:"삭제하기",
-        textfield:"삭제 사유",
-        placeholder:"삭제 사유를 입력하세요.",
-      };
-      case "reject":
-        return{
-
-          title:"거절하기",
-          label:"펫스타 아이디",
-          description:"요청을 거절하시겠습니까?",
-          confirmText:"거절하기",
-          textfield:"거절 사유",
-          placeholder:"거절 사유를 입력하세요.",
+        return {
+          title: "삭제하기",
+          label: "광고 제목",
+          description: "광고를 삭제하시겠습니까?",
+          confirmText: "삭제하기",
+          textfield: "삭제 사유",
+          placeholder: "삭제 사유를 입력하세요.",
+        };
+      case "productreject":
+        return {
+          title: "거절하기",
+          label: "광고 제목",
+          description: "광고 승인을 반려하시겠습니까?",
+          confirmText: "반려하기",
+          textfield: "반려 사유",
+          placeholder: "반려 사유를 입력하세요.",
+        };
+      case "advertiserreject":
+        return {
+          title: "반려하기",
+          label: "광고주 이름",
+          description: "광고주 회원신청을 반려하시겠습니까?",
+          confirmText: "반려하기",
+          textfield: "반려 사유",
+          placeholder: "반려 사유를 입력하세요.",
+        };
+      case "petstarreject":
+        return {
+          title: "반려하기",
+          label: "펫스타 아이디",
+          description: "펫스타 요청을 반려하시겠습니까?",
+          confirmText: "반려하기",
+          textfield: "반려 사유",
+          placeholder: "반려 사유를 입력하세요.",
         };
       case "restrict":
-        return{
-          title:"제한하기",
-          label:"회원 아이디",
-          description:"회원 활동을 제한하시겠습니까?",
-          confirmText:"제한하기",
-          textfield:"제한 사유",
-          placeholder:"제한 사유를 입력하세요.",
+        return {
+          title: "제한하기",
+          label: "회원 아이디",
+          description: "회원 활동을 제한하시겠습니까?",
+          confirmText: "제한하기",
+          textfield: "제한 사유",
+          placeholder: "제한 사유를 입력하세요.",
+        };
+      case "reportreject":
+        return {
+          title: "거절하기",
+          label: "신고 사유",
+          description: "이 신고를 거절하시겠습니까?",
+          confirmText: "거절하기",
+          textfield: "거절 사유",
+          placeholder: "거절 사유를 입력하세요.",
+        };
+      default:
+        console.warn("알 수 없는 actionType:", actionType);
+        return {
+          title: "알 수 없는 작업",
+          label: "대상",
+          description: "작업을 수행하시겠습니까?",
+          confirmText: "확인",
+          textfield: "사유",
+          placeholder: "사유를 입력하세요.",
         };
     }
-  }
+  };
   const handleDelete = () => {
     if (deleteReason.trim()) {
       onDelete(deleteReason);
@@ -107,7 +143,9 @@ export default function PopupModal({
             {/* Delete Reason */}
             <div className={styles.formGroup}>
               <div className={styles.labelContainer}>
-                <label className={styles.label}>{getModalContent().textfield}</label>
+                <label className={styles.label}>
+                  {getModalContent().textfield}
+                </label>
                 <span className={styles.required}>*</span>
               </div>
               <div className={styles.textareaContainer}>
@@ -134,14 +172,16 @@ export default function PopupModal({
               onClick={handleDelete}
               disabled={!deleteReason.trim()}
             >
-              <svg width="12" height="16" viewBox="0 0 12 16" fill="none">
+              <svg width="12" height="18" viewBox="0 0 12 16" fill="none">
                 <path
                   d="M1 3H11M4 3V2C4 1.44772 4.44772 1 5 1H7C7.55228 1 8 1.44772 8 2V3M9.5 3V13C9.5 14.1046 8.60457 15 7.5 15H4.5C3.39543 15 2.5 14.1046 2.5 13V3H9.5Z"
                   stroke="white"
                   strokeWidth="2"
                 />
               </svg>
-              {getModalContent().confirmText}
+              <a style={{ marginTop: "2px" }}>
+                {getModalContent().confirmText}
+              </a>
             </button>
           </div>
         </div>

@@ -1,46 +1,61 @@
 import styles from "@/app/admin/styles/ProductManagement.module.css";
+import mainstyles from "@/app/styles/Header.module.css";
 import React from "react";
+import { useRouter } from "next/navigation";
+import { adminLogout } from "@/api/api";
 
-export default function AdminHeader(){
-    return(
-        <>
-        {/* Header */}
-    <header className={styles.header}>
+export default function AdminHeader() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      // localStorage에서 refreshToken 가져오기
+      const refreshToken = localStorage.getItem("refreshToken");
+
+      if (refreshToken) {
+        // 백엔드 로그아웃 API 호출
+        await adminLogout(refreshToken);
+        console.log("관리자 로그아웃 성공");
+      }
+
+      // 로컬 스토리지 정리
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("adminId");
+      localStorage.removeItem("adminType");
+
+      // 메인 페이지로 리다이렉트
+      router.push("/");
+    } catch (error) {
+      console.error("로그아웃 중 오류 발생:", error);
+      // 에러가 발생해도 로컬 스토리지는 정리하고 메인 페이지로 이동
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("adminId");
+      localStorage.removeItem("adminType");
+      router.push("/");
+    }
+  };
+
+  return (
+    <>
+      {/* Header */}
+      <header className={styles.header}>
         <div className={styles.headerContent}>
-            <div className={styles.logo}>
-                <h1>PetFulAdmin</h1>
+          <div className={styles.logo}>
+            <h1>PetFulAdmin</h1>
+          </div>
+          <div className={styles.headerActions}>
+            <div
+              className={mainstyles.signupButton}
+              onClick={handleLogout}
+              style={{ cursor: "pointer" }}
+            >
+              로그아웃
             </div>
-            <div className={styles.headerActions}>
-                <button className={styles.notificationBtn}>
-                    <svg width="18" height="21" viewBox="0 0 18 21" fill="none">
-                        <path
-                            d="M9 21C10.6569 21 12 19.6569 12 18H6C6 19.6569 7.34315 21 9 21Z"
-                            fill="#4B5563"
-                        />
-                        <path
-                            d="M16 8C16 4.13401 12.866 1 9 1C5.13401 1 2 4.13401 2 8V13L0 16H18L16 13V8Z"
-                            stroke="#4B5563"
-                            strokeWidth="2"
-                        />
-                    </svg>
-                    <span className={styles.notificationBadge}></span>
-                </button>
-                <button className={styles.profileBtn}>
-                    <svg width="20" height="21" viewBox="0 0 20 21" fill="none">
-                        <path
-                            d="M10 10.5C12.7614 10.5 15 8.26142 15 5.5C15 2.73858 12.7614 0.5 10 0.5C7.23858 0.5 5 2.73858 5 5.5C5 8.26142 7.23858 10.5 10 10.5Z"
-                            fill="#4B5563"
-                        />
-                        <path
-                            d="M0 20.5C0 16.0817 3.58172 12.5 8 12.5H12C16.4183 12.5 20 16.0817 20 20.5"
-                            stroke="#4B5563"
-                            strokeWidth="2"
-                        />
-                    </svg>
-                </button>
-            </div>
+          </div>
         </div>
-    </header>
-        </>
-    )
+      </header>
+    </>
+  );
 }

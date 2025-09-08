@@ -38,6 +38,27 @@
   width: 100%;
 }
 
+/* 포트폴리오 프롬프트 스타일 */
+.portfolioPrompt {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+  width: 100%;
+  max-width: 800px;
+}
+
+.portfolioMessage {
+  font-family: "Pretendard Variable", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #594a3e;
+  margin: 0;
+}
+
 /* 프로필 이미지 섹션 */
 .profileImageSection {
   display: flex;
@@ -157,7 +178,7 @@
 /* 활동이력 카드 섹션 */
 .activitySection {
   width: 1000px;
-  height: 500px;
+  height: auto;
   background: #ffffff;
   border: 1px solid #f3f4f6;
   border-radius: 12px;
@@ -175,7 +196,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  height: 400px;
+  height: auto;
   margin-top: 20px;
 }
 
@@ -206,10 +227,12 @@
 
 .activityCardsContainer {
   flex: 1;
-  height: 400px;
+  height: auto;
+  overflow-y: visible; /* 세로 자르지 않음 */
   overflow-x: auto;
-  overflow-y: hidden;
   position: relative;
+  padding: 0 12px; /* ← 좌우 여백 추가 */
+
   cursor: grab;
   scrollbar-width: thin;
   scrollbar-color: #c1c1c1 #f1f1f1;
@@ -248,21 +271,23 @@
 
 .activityCard {
   width: 350px;
-  height: 480px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  overflow: hidden;
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-sizing: border-box;
+  overflow: hidden;
+  height: auto;
 }
 
 .activityCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 0 2px #8bc34a, 0 4px 8px rgba(0, 0, 0, 0.1);
   border-color: #8bc34a;
+  border-color: transparent;
 }
 
 .cardImage {
@@ -273,6 +298,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  overflow: hidden;
 }
 
 .imagePlaceholder {
@@ -282,6 +310,11 @@
   width: 100%;
   height: 100%;
   background: #f3f4f6;
+}
+
+.cardImage img {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 .progressBadge {
@@ -299,10 +332,15 @@
 
 .cardContent {
   padding: 16px;
-  height: 300px;
+  height: auto;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  background: #ffffff;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
 }
 
 .cardHeader {
@@ -354,19 +392,31 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
-  overflow: visible;
+  flex: 0 0 auto;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .formRow {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   flex: 1;
+  margin-bottom: 8px;
 }
 
 .formRow:last-child {
   flex: 3;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.formRow:last-child .readOnlyText {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .formRow label {
@@ -433,7 +483,7 @@
 }
 
 .readOnlyText {
-  padding: 6px 10px;
+  padding: 4px 8px;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -442,13 +492,14 @@
   font-weight: 400;
   color: #374151;
   line-height: 1.4;
-  min-height: 32px;
-  display: block;
+  min-height: 24px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
-  max-height: none;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .titleWithEdit {
@@ -523,10 +574,14 @@
   font-family: "Pretendard Variable", sans-serif;
   font-size: 16px;
   font-weight: 400;
-  color: #adaebc;
+  color: #000000;
   background: #ffffff;
   resize: none;
   box-sizing: border-box;
+}
+
+.personalityTextarea::placeholder {
+  color: #6b7280;
 }
 
 .personalityTextarea:focus {
@@ -560,16 +615,21 @@
 
 .introductionInput {
   width: 100%;
-  height: 34px;
+  height: 140px;
   padding: 12px 16px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-family: "Pretendard Variable", sans-serif;
   font-size: 16px;
   font-weight: 400;
-  color: #adaebc;
+  color: #000000;
   background: #ffffff;
   box-sizing: border-box;
+  resize: none;
+}
+
+.introductionInput::placeholder {
+  color: #6b7280;
 }
 
 .introductionInput:focus {
@@ -621,9 +681,13 @@
   font-family: "Pretendard Variable", sans-serif;
   font-size: 16px;
   font-weight: 400;
-  color: #adaebc;
+  color: #000000;
   background: #ffffff;
   box-sizing: border-box;
+}
+
+.formGroup input::placeholder {
+  color: #6b7280;
 }
 
 .formGroup input:focus,
@@ -675,9 +739,13 @@
   font-family: "Pretendard Variable", sans-serif;
   font-size: 16px;
   font-weight: 400;
-  color: #adaebc;
+  color: #000000;
   background: #ffffff;
   box-sizing: border-box;
+}
+
+.contactForm .formGroup input::placeholder {
+  color: #6b7280;
 }
 
 .contactForm .formGroup input:focus {
@@ -728,6 +796,145 @@
 
 .submitButton:hover {
   background: #e0941a;
+}
+
+/* 알림 모달 */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.alertModal {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alertContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.alertIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.successIcon {
+  background: #10b981;
+}
+
+.warningIcon {
+  background: #f59e0b;
+}
+
+.questionIcon {
+  background: #3b82f6;
+}
+
+.alertTitle {
+  font-family: "Pretendard Variable", sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  color: #374151;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.alertButton {
+  width: 120px;
+  height: 40px;
+  background: #8bc34a;
+  border: none;
+  border-radius: 20px;
+  color: #ffffff;
+  font-family: "Pretendard Variable", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.alertButton:hover {
+  background: #7cb342;
+  transform: translateY(-1px);
+}
+
+.confirmButtons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirmButton {
+  width: 100px;
+  height: 40px;
+  background: #8bc34a;
+  border: none;
+  border-radius: 20px;
+  color: #ffffff;
+  font-family: "Pretendard Variable", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirmButton:hover {
+  background: #7cb342;
+  transform: translateY(-1px);
+}
+
+.cancelButton {
+  width: 100px;
+  height: 40px;
+  background: #6b7280;
+  border: none;
+  border-radius: 20px;
+  color: #ffffff;
+  font-family: "Pretendard Variable", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
 }
 
 /* 반응형 디자인 */

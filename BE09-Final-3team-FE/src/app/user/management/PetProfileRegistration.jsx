@@ -1,47 +1,287 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import styles from "./PetProfileRegistration.module.css";
+import api from "../../../api/api";
+import ProfileSelector from "../../sns/components/ProfileSelector";
 
-const PetProfileRegistration = ({ isOpen, onClose }) => {
+const PetProfileRegistration = ({
+  isOpen,
+  onClose,
+  petData,
+  isEditMode,
+  onSuccess,
+  onSuccessMessage,
+}) => {
   const [formData, setFormData] = useState({
-    name: "버디",
-    breed: "",
-    age: "1살",
+    name: "",
+    type: "",
+    age: "",
     gender: "",
-    description: "",
-    sns: "",
+    weight: "",
+    imageUrl: "",
+    snsId: "",
+    snsUsername: "",
   });
 
   const [selectedImage, setSelectedImage] = useState(null);
   const fileInputRef = useRef(null);
+  const [showFileTypeModal, setShowFileTypeModal] = useState(false);
+  const [fileTypeMessage, setFileTypeMessage] = useState("");
+
+  // 수정 모드일 때 기존 데이터를 폼에 불러오기
+  useEffect(() => {
+    if (isEditMode && petData) {
+      console.log("수정 모드 - 기존 펫 데이터:", petData);
+      const updatedFormData = {
+        name: petData.name || "",
+        type: petData.type || "",
+        age: petData.age || "",
+        gender: petData.gender || "",
+        weight: petData.weight || "",
+        imageUrl: petData.imageUrl || "",
+        snsId: petData.snsId && petData.snsId !== null ? petData.snsId : "",
+        snsUsername:
+          petData.snsUsername && petData.snsUsername !== null
+            ? petData.snsUsername
+            : "",
+      };
+      setFormData(updatedFormData);
+      console.log("설정된 formData.snsId:", petData.snsId);
+      console.log("설정된 전체 formData:", updatedFormData);
+      console.log("snsId 처리 결과:", updatedFormData.snsId);
+      // 기존 이미지가 있으면 표시
+      if (petData.imageUrl && petData.imageUrl.trim() !== "") {
+        setSelectedImage(petData.imageUrl);
+      } else {
+        setSelectedImage(null);
+      }
+    } else {
+      // 새로 등록할 때는 기본값으로 초기화
+      setFormData({
+        name: "",
+        type: "",
+        age: "",
+        gender: "",
+        weight: "",
+        imageUrl: "",
+        snsId: "",
+        snsUsername: "",
+      });
+      setSelectedImage(null);
+    }
+  }, [isEditMode, petData]);
+
+  // Select 요소 색상 초기화
+  useEffect(() => {
+    const genderSelect = document.querySelector('select[name="gender"]');
+
+    if (genderSelect) {
+      genderSelect.style.color = formData.gender ? "#000000" : "#9ca3af";
+    }
+  }, [formData.gender]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+
+    // Select 요소의 색상 변경
+    if (field === "gender") {
+      const selectElement = document.querySelector(`select[name="${field}"]`);
+      if (selectElement) {
+        if (value) {
+          selectElement.style.color = "#000000";
+        } else {
+          selectElement.style.color = "#9ca3af";
+        }
+      }
+    }
   };
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // 지원하는 이미지 파일 확장자
+    const supportedExtensions = ["jpg", "jpeg", "png"];
+
+    // 파일 확장자 검증
+    const extension = file.name.split(".").pop().toLowerCase();
+    if (!supportedExtensions.includes(extension)) {
+      setFileTypeMessage(
+        `지원하지 않는 파일확장자입니다.\n(지원하는 파일확장자: ${supportedExtensions.join(
+          ", "
+        )})`
+      );
+      setShowFileTypeModal(true);
+      return;
     }
+
+    // 파일 크기 검증 (5MB 제한)
+    if (file.size > 5 * 1024 * 1024) {
+      if (onSuccessMessage) {
+        onSuccessMessage("파일 크기는 5MB 이하여야 합니다.");
+      }
+      return;
+    }
+
+    // 파일 타입 검증
+    if (!file.type.startsWith("image/")) {
+      if (onSuccessMessage) {
+        onSuccessMessage("이미지 파일만 업로드 가능합니다.");
+      }
+      return;
+    }
+
+    // 미리보기용으로 설정
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setSelectedImage(e.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    // 파일을 formData에 저장 (나중에 업로드용)
+    setFormData((prev) => ({
+      ...prev,
+      imageFile: file,
+    }));
   };
 
-  const handleEdit = () => {
-    console.log("Edit profile");
-    onClose();
-  };
+  const handleSubmit = async () => {
+    try {
+      // 필수 필드 검증
+      if (
+        !formData.name ||
+        !formData.type ||
+        !formData.age ||
+        !formData.gender ||
+        !formData.weight
+      ) {
+        if (onSuccessMessage) {
+          onSuccessMessage("모든 필수 필드를 입력해주세요.");
+        }
+        return;
+      }
 
-  const handleDelete = () => {
-    console.log("Delete profile");
-    onClose();
+      const requestData = {
+        name: formData.name,
+        type: formData.type,
+        age: parseInt(formData.age),
+        gender: formData.gender,
+        weight: parseFloat(formData.weight),
+        imageUrl: formData.imageUrl || null,
+        snsId: formData.snsId && formData.snsId !== "" ? formData.snsId : null,
+        snsUsername:
+          formData.snsUsername && formData.snsUsername !== ""
+            ? formData.snsUsername
+            : null,
+      };
+
+      console.log("전송할 데이터:", requestData);
+      console.log("수정 모드 여부:", isEditMode);
+      console.log("기존 펫 데이터:", petData);
+      console.log("현재 formData.snsId:", formData.snsId);
+      console.log("formData.snsId 타입:", typeof formData.snsId);
+      console.log("formData.snsId === null:", formData.snsId === null);
+      console.log(
+        "API 엔드포인트:",
+        isEditMode
+          ? `${PET_API_BASE}/pets/${petData.petNo}`
+          : `${PET_API_BASE}/pets`
+      );
+
+      let petResponse;
+      if (isEditMode && petData) {
+        // 수정
+        console.log("PUT 요청 시작 - 펫 번호:", petData.petNo);
+        petResponse = await api.put(
+          `/pet-service/pets/${petData.petNo}`,
+          requestData
+        );
+        console.log("PUT 요청 응답:", petResponse.data);
+      } else {
+        // 등록
+        petResponse = await api.post(`/pet-service/pets`, requestData);
+      }
+
+      // 반려동물 등록/수정 성공 후 이미지 업로드
+      if (formData.imageFile && petResponse.data.code === "2000") {
+        const petNo = petResponse.data.data.petNo;
+
+        const imageFormData = new FormData();
+        imageFormData.append("file", formData.imageFile);
+
+        try {
+          const imageResponse = await api.post(
+            `/pet-service/pets/${petNo}/image`,
+            imageFormData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+
+          if (imageResponse.data.code === "2000") {
+            console.log("이미지 업로드 성공:", imageResponse.data.data);
+            // 이미지 업로드 성공 시 새로운 이미지 URL로 업데이트
+            const newImageUrl = imageResponse.data.data.fileUrl;
+            setFormData((prev) => ({
+              ...prev,
+              imageUrl: newImageUrl,
+            }));
+          } else {
+            console.error("이미지 업로드 실패:", imageResponse.data.message);
+          }
+        } catch (imageError) {
+          console.error("이미지 업로드 중 오류:", imageError);
+          // 이미지 업로드 실패해도 반려동물 등록은 성공했으므로 계속 진행
+        }
+      }
+
+      // 성공 로그 출력
+      console.log(
+        isEditMode ? "펫 프로필 수정 성공!" : "펫 프로필 등록 성공!",
+        {
+          petNo: petResponse.data.data.petNo,
+          name: formData.name,
+          type: formData.type,
+          age: formData.age,
+          gender: formData.gender,
+          weight: formData.weight,
+          imageUrl: formData.imageUrl,
+          snsId: formData.snsId,
+          snsUsername: formData.snsUsername,
+          response: petResponse.data,
+        }
+      );
+
+      // 성공 메시지 표시
+      if (onSuccessMessage) {
+        onSuccessMessage(
+          isEditMode
+            ? "펫 정보가 수정되었습니다."
+            : "반려동물이 등록되었습니다."
+        );
+      }
+
+      onClose();
+      // 부모 컴포넌트에서 목록 새로고침을 위해 콜백 호출
+      if (onSuccess && typeof onSuccess === "function") {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error("반려동물 저장 실패:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "반려동물 저장에 실패했습니다.";
+      if (onSuccessMessage) {
+        onSuccessMessage(errorMessage);
+      }
+    }
   };
 
   const handleClose = () => {
@@ -57,7 +297,9 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className={styles.modalHeader}>
-          <h1 className={styles.title}>반려동물 프로필</h1>
+          <h1 className={styles.title}>
+            {isEditMode ? "반려동물 프로필 수정" : "반려동물 프로필"}
+          </h1>
           <button className={styles.closeButton} onClick={handleClose}>
             ×
           </button>
@@ -68,11 +310,21 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
           <div className={styles.imageSection}>
             <div className={styles.imageContainer}>
               {selectedImage ? (
-                <img
-                  src={selectedImage}
-                  alt="Pet profile"
-                  className={styles.petImage}
-                />
+                <div className={styles.imageWrapper}>
+                  <img
+                    src={selectedImage}
+                    alt="Pet profile"
+                    className={styles.petImage}
+                  />
+                  <div className={styles.imageOverlay}>
+                    <button
+                      className={styles.overlayUploadButton}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {isEditMode ? "사진 변경" : "사진 업로드"}
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className={styles.imagePlaceholder}>
                   <img
@@ -80,16 +332,14 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
                     alt="Upload"
                     className={styles.uploadIcon}
                   />
+                  <button
+                    className={styles.placeholderUploadButton}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isEditMode ? "사진 변경" : "사진 업로드"}
+                  </button>
                 </div>
               )}
-            </div>
-
-            <div className={styles.uploadButtonContainer}>
-              <img
-                src="/user/upload.svg"
-                alt="Upload"
-                className={styles.uploadIcon}
-              />
               <input
                 ref={fileInputRef}
                 type="file"
@@ -97,12 +347,6 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
                 onChange={handleImageUpload}
                 className={styles.fileInput}
               />
-              <button
-                className={styles.uploadButton}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                사진 업로드
-              </button>
             </div>
           </div>
 
@@ -120,14 +364,14 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
               />
             </div>
 
-            {/* Breed and Age Fields */}
+            {/* Type and Age Fields */}
             <div className={styles.rowGroup}>
               <div className={styles.formGroup}>
                 <label className={styles.label}>품종</label>
                 <input
                   type="text"
-                  value={formData.breed}
-                  onChange={(e) => handleInputChange("breed", e.target.value)}
+                  value={formData.type}
+                  onChange={(e) => handleInputChange("type", e.target.value)}
                   className={styles.input}
                   placeholder="품종을 입력해주세요."
                 />
@@ -136,7 +380,7 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
               <div className={styles.formGroup}>
                 <label className={styles.label}>나이</label>
                 <input
-                  type="text"
+                  type="number"
                   value={formData.age}
                   onChange={(e) => handleInputChange("age", e.target.value)}
                   className={styles.input}
@@ -150,6 +394,7 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
               <label className={styles.genderLabel}>성별</label>
               <div className={styles.selectContainer}>
                 <select
+                  name="gender"
                   value={formData.gender}
                   onChange={(e) => handleInputChange("gender", e.target.value)}
                   className={styles.select}
@@ -157,8 +402,8 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
                   <option value="" disabled hidden>
                     반려동물의 성별을 선택해주세요.
                   </option>
-                  <option value="수컷">수컷</option>
-                  <option value="암컷">암컷</option>
+                  <option value="M">수컷</option>
+                  <option value="F">암컷</option>
                 </select>
                 <img
                   src="/user/dropdown-sns.svg"
@@ -168,43 +413,31 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* SNS Field */}
+            {/* Weight Field */}
             <div className={styles.formGroup}>
-              <div className={styles.snsContainer}>
-                <img
-                  src="/user/instagram.svg"
-                  alt="SNS"
-                  className={styles.snsIcon}
-                />
-                <div className={styles.selectContainer}>
-                  <select
-                    value={formData.sns}
-                    onChange={(e) => handleInputChange("sns", e.target.value)}
-                    className={styles.select}
-                  >
-                    <option value="">SNS URL를 선택해주세요</option>
-                    <option value="instagram">Instagram</option>
-                  </select>
-                  <img
-                    src="/user/dropdown-sns.svg"
-                    alt="Dropdown"
-                    className={styles.dropdownIcon}
-                  />
-                </div>
-              </div>
+              <label className={styles.label}>체중 (kg)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formData.weight}
+                onChange={(e) => handleInputChange("weight", e.target.value)}
+                className={styles.input}
+                placeholder="체중을 입력해주세요"
+              />
             </div>
 
-            {/* Description Field */}
+            {/* SNS Profile Field */}
             <div className={styles.formGroup}>
-              <label className={styles.label}>반려동물 한줄평</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) =>
-                  handleInputChange("description", e.target.value)
-                }
-                className={styles.textarea}
-                placeholder="반려동물을 대표하는 한 줄평을 작성해주세요."
-                rows={2}
+              <label className={styles.label}>SNS 프로필</label>
+              <ProfileSelector
+                onProfileSelect={(profileData) => {
+                  console.log("선택된 프로필 데이터:", profileData);
+                  handleInputChange("snsId", profileData.snsId);
+                  handleInputChange("snsUsername", profileData.username);
+                }}
+                selectedProfileId={formData.snsId}
+                selectedProfileUsername={formData.snsUsername}
+                allowNone={true}
               />
             </div>
           </div>
@@ -212,24 +445,44 @@ const PetProfileRegistration = ({ isOpen, onClose }) => {
 
         {/* Action Buttons */}
         <div className={styles.buttonContainer}>
-          <button className={styles.editButton} onClick={handleEdit}>
+          <button className={styles.editButton} onClick={handleSubmit}>
             <img
               src="/user/edit-icon.svg"
               alt="Edit"
               className={styles.buttonIcon}
             />
-            수정
-          </button>
-          <button className={styles.deleteButton} onClick={handleDelete}>
-            <img
-              src="/user/delete-icon.svg"
-              alt="Delete"
-              className={styles.buttonIcon}
-            />
-            삭제
+            {isEditMode ? "수정 완료" : "등록"}
           </button>
         </div>
       </div>
+
+      {/* 파일 타입 검증 모달 */}
+      {showFileTypeModal && (
+        <div className={styles.fileTypeModalOverlay}>
+          <div
+            className={styles.fileTypeModalContainer}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.fileTypeModalContent}>
+              <div className={styles.fileTypeWarningIcon}>
+                <span>⚠️</span>
+              </div>
+              <h3 className={styles.fileTypeModalTitle}>
+                지원하지 않는 파일 형식
+              </h3>
+              <p className={styles.fileTypeModalMessage}>{fileTypeMessage}</p>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <button
+                onClick={() => setShowFileTypeModal(false)}
+                className={styles.fileTypeModalButton}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

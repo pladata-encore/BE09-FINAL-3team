@@ -5,6 +5,7 @@
   border-radius: 0 0 12px 12px;
   padding: 24px;
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  margin-top: -1px;
 }
 
 /* 처방전 사진 업로드 섹션 */
@@ -73,6 +74,20 @@
   margin-bottom: 16px;
 }
 
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filterContainer {
+  min-width: 120px;
+}
+
+.filterSelect {
+  font-size: 14px;
+}
+
 .sectionHeader h3 {
   font-size: 20px;
   font-weight: 400;
@@ -119,6 +134,10 @@
   align-items: center;
 }
 
+.medicationCard:hover {
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .medicationInfo {
   display: flex;
   align-items: center;
@@ -148,16 +167,27 @@
   margin: 0;
 }
 
+.scheduleTime {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
 .medicationActions {
   display: flex;
   gap: 8px;
 }
 
 .actionButton {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   background: none;
   border: none;
   border-radius: 4px;
-  padding: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
@@ -166,40 +196,240 @@
   background: #f3f4f6;
 }
 
-.actionButton svg {
-  width: 16px;
-  height: 16px;
+.actionButton img {
+  width: 20px;
+  height: 20px;
 }
 
-/* 스케줄 캘린더 섹션 */
-.calendarSection {
-  background: #f8f9fa;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 25px;
+/* 페이징 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
 }
 
-.calendarSection h3 {
-  font-size: 20px;
-  font-weight: 400;
-  color: #594a3e;
-  margin: 0 0 16px 0;
+.pageButton {
+  width: 10px;
+  height: 10px;
+  background: #e5e7eb;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.calendarPlaceholder {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 87px 0;
-  text-align: center;
+.pageButton:hover:not(:disabled) {
+  background: #cbd5e1;
 }
 
-.calendarIcon {
+.pageButton.activePage {
+  background: #8bc34a;
+}
+
+.pageButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* 로딩 스타일 */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #8bc34a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
   margin-bottom: 16px;
 }
 
-.calendarPlaceholder p {
-  font-size: 16px;
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 빈 상태 스타일 */
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+.emptyIcon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(148, 148, 148, 0.2);
+  animation: float 3s ease-in-out infinite;
+}
+
+.emptyContainer p {
+  margin: 0;
+  color: #594a3e;
+  font-weight: 400;
+}
+
+.emptyContainer p:first-of-type {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+.emptyContainer p:last-of-type {
+  font-size: 14px;
+  color: #6b7280;
+  opacity: 0.8;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* 반려동물 선택 안내 섹션 */
+.noPetSection {
+  margin-bottom: 24px;
+}
+
+.noPetArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+.noPetIcon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(148, 148, 148, 0.2);
+  animation: float 3s ease-in-out infinite;
+}
+
+.noPetText h3 {
+  margin: 0;
+  color: #594a3e;
+  font-weight: 400;
+}
+
+.noPetText h3:first-of-type {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+.noPetText p {
+  margin: 0;
+  color: #594a3e;
+  font-weight: 400;
+}
+
+.noPetText p:last-of-type {
+  font-size: 14px;
+  color: #6b7280;
+  opacity: 0.8;
+}
+
+/* 처방전 배지 스타일 */
+.medicationHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.prescriptionBadge {
+  background: #e3f2fd;
+  color: #1976d2;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* 빈 상태 스타일 */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.emptyDescription {
+  font-size: 14px;
   color: #6b7280;
   margin: 0;
+}
+
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+  min-height: 200px;
 }

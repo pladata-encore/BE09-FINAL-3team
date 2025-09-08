@@ -1,195 +1,1056 @@
-'use client';
+"use client";
 import styles from "@/app/admin/styles/ProductManagement.module.css";
+
+import React, { useState, useEffect } from "react";
+import {
+  getReportList,
+  approveReport,
+  rejectReport,
+  getAdvertiserApplications,
+  approveAdvertiser,
+  rejectAdvertiser,
+} from "@/api/userApi";
+import {
+  getPetStarApplications,
+  approvePetStar,
+  rejectPetStar,
+} from "@/api/petApi";
 import PopupModal from "@/app/admin/components/PopupModal";
-import React, {useState} from "react";
-import petstars from "@/app/admin/data/petstars";
+import AlertModal from "./AlertModal";
+import DeleteConfirmModal from "./DeleteConfirmModal";
 
+export default function MemberManagement() {
+  const [activeTab, setActiveTab] = useState("펫스타 지원");
+  const [reportList, setReportList] = useState([]);
+  const [petStarList, setPetStarList] = useState([]);
+  const [advertiserList, setAdvertiserList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedPetStar, setSelectedPetStar] = useState(null);
+  const [selectedAdvertiser, setSelectedAdvertiser] = useState(null);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState("info");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteAction, setDeleteAction] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-export default function MemberManagement(){
-    const [activeTab, setActiveTab] = useState("펫스타 지원");
-    const [isModalOpen,setIsModalOpen] = useState(false);
-    const handleRestrict = (productId) => {
-        console.log(`Delete product ${productId}`);
-        // 제한 로직 구현
-    };
-    const handleReject = (productId) => {
-        console.log(`Reject product ${productId}`);
-        // 거절 로직 구현
-    };
-    const handleApprove = (productId) => {
-        console.log(`Approve product ${productId}`);
-        // 승인 로직 구현
-    };
+  // 파일 관련 상태 (더 이상 사용하지 않음)
+  const [showFileModal, setShowFileModal] = useState(false);
+  const [selectedAdvertiserFiles, setSelectedAdvertiserFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
-    return(
-        <>
-            {/* Main Content */}
-            <main className={styles.main}>
-                <div className={styles.content}>
-                    {/* Navigation Tabs */}
-                    <div className={styles.tabNavigation}>
-                        <nav className={styles.tabs}>
-                            <button
-                                className={`${styles.tab} ${
-                                    activeTab === "펫스타 지원" ? styles.active : ""
-                                }`}
-                                onClick={() => setActiveTab("펫스타 지원")}
-                            >
-                                펫스타 지원자 목록
-                            </button>
-                            <button
-                                className={`${styles.tab} ${
-                                    activeTab === "신고당한 회원" ? styles.active : ""
-                                }`}
-                                onClick={() => setActiveTab("신고당한 회원")}
-                            >
-                                신고당한 회원 목록
-                            </button>
-                        </nav>
-                    </div>
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(4);
 
-                    {/* Search and Filter */}
-                    <div className={styles.searchSection}>
-                        <div>
-                            {activeTab==="펫스타 지원"? <h2 className={styles.sectionTitle}>펫스타 지원자 목록</h2> : <h2 className={styles.sectionTitle}>
-                                신고당한 회원 목록
-                            </h2>}
-                        </div>
-                        <div className={styles.rightControls}>
-                            <div className={styles.searchContainer}>
-                                <input
-                                    type="text"
-                                    placeholder="검색어를 입력하세요."
-                                    className={styles.searchInput}
-                                />
-                                <div className={styles.searchIcon}>
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                        <path
-                                            d="M11 11L15 15"
-                                            stroke="#9CA3AF"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                        />
-                                        <circle
-                                            cx="7"
-                                            cy="7"
-                                            r="6"
-                                            stroke="#9CA3AF"
-                                            strokeWidth="2"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                            <select className={styles.sortSelect}>
-                                <option>최신순</option>
-                                <option>오래된순</option>
-                            </select>
-                        </div>
-                    </div>
+  // 페이지네이션 계산 함수들
+  const getCurrentItems = (items) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
+  };
 
-                    {/* Product List */}
-                    <section className={styles.productSection}>
-                        <div className={styles.productList}>
-                            {petstars.map((petstar) => (
-                                <div key={petstar.id} className={styles.productCard}>
-                                    <div className={styles.productContent}>
-                                        <div className={styles.productImage}>
-                                            <img src={petstar.petImage} alt={petstar.petName} />
-                                        </div>
-                                        <div className={styles.productInfo}>
-                                            <h3 className={styles.productTitle}>{petstar.petName}</h3>
-                                            <p className={styles.productDescription}>
-                                                {petstar.petSnS}
-                                            </p>
-                                            <div className={styles.companyInfo}>
-                                                <img
-                                                    src={petstar.ownerImg}
-                                                    className={styles.companyLogo}
-                                                />
-                                                <div className={styles.companyDetails}>
-                            <span className={styles.companyName}>
-                              {petstar.ownerName}
-                            </span>
-                            <span className={styles.companyType}>
-                              {petstar.ownerPhone} || {petstar.ownerEmail}
-                            </span>
+  const getTotalPages = (items) => {
+    return Math.ceil(items.length / itemsPerPage);
+  };
 
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className={styles.productActions} style={{width:"265px"}}>
-                                        {activeTab === "신고당한 회원" ? (
-                                            <>
-                                                <button
-                                                    className={styles.deleteBtn}
-                                                    onClick={()=>setIsModalOpen(true)}
-                                                >
-                                                    <svg
-                                                        width="12"
-                                                        height="16"
-                                                        viewBox="0 0 12 16"
-                                                        fill="none"
-                                                    >
-                                                        <path
-                                                            d="M1 3H11M4 3V2C4 1.44772 4.44772 1 5 1H7C7.55228 1 8 1.44772 8 2V3M9.5 3V13C9.5 14.1046 8.60457 15 7.5 15H4.5C3.39543 15 2.5 14.1046 2.5 13V3H9.5Z"
-                                                            stroke="white"
-                                                            strokeWidth="2"
-                                                        />
-                                                    </svg>
-                                                    RESTRICT
-                                                </button>
-                                                <PopupModal
-                                                    isOpen={isModalOpen}
-                                                    onClose={() => setIsModalOpen(false)}
-                                                    onDelete={handleRestrict}
-                                                    productTitle="신규 캠페인: 여름 할인 50%"
-                                                    actionType="restrict"
-                                                    targetKeyword={petstar.ownerName}
-                                                />
-                                            </>
-                                        ):(
-                                            <>
-                                                <button className={styles.approveBtn} onClick={handleApprove}>
-                                                    <svg
-                                                        width="16"
-                                                        height="16"
-                                                        viewBox="0 0 16 16"
-                                                        fill="none"
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                    >
-                                                        <path
-                                                            d="M2 8L6 12L14 4"
-                                                            stroke="white"
-                                                            strokeWidth="2"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        />
-                                                    </svg>
-                                                    APPROVE
-                                                </button>
-                                                <button className={styles.rejectBtn}  onClick={()=>setIsModalOpen(true)}>
-                                                    <svg width="11" height="10" viewBox="0 0 11 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M10.6598 1.70664C11.0504 1.31602 11.0504 0.681641 10.6598 0.291016C10.2691 -0.0996094 9.63477 -0.0996094 9.24414 0.291016L5.95352 3.58477L2.65977 0.294141C2.26914 -0.0964844 1.63477 -0.0964844 1.24414 0.294141C0.853516 0.684766 0.853516 1.31914 1.24414 1.70977L4.53789 5.00039L1.24727 8.29414C0.856641 8.68476 0.856641 9.31914 1.24727 9.70977C1.63789 10.1004 2.27227 10.1004 2.66289 9.70977L5.95352 6.41602L9.24727 9.70664C9.63789 10.0973 10.2723 10.0973 10.6629 9.70664C11.0535 9.31602 11.0535 8.68164 10.6629 8.29102L7.36914 5.00039L10.6598 1.70664Z" fill="white"/>
-                                                    </svg>
-                                                    REJECT
-                                                </button>
-                                                <PopupModal
-                                                    isOpen={isModalOpen}
-                                                    onClose={() => setIsModalOpen(false)}
-                                                    onDelete={handleReject}
-                                                    productTitle="신규 캠페인: 여름 할인 50%"
-                                                    actionType="reject"
-                                                    targetKeyword={petstar.petName}
-                                                />
-                                            </>)}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                </div>
-            </main>
-        </>
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // 데이터 조회
+  useEffect(() => {
+    setCurrentPage(1); // 탭 변경 시 첫 페이지로 이동
+    if (activeTab === "신고당한 회원") {
+      loadReportList();
+    } else if (activeTab === "펫스타 지원") {
+      loadPetStarList();
+    } else if (activeTab === "광고주 회원 승인") {
+      loadAdvertiserList();
+    }
+  }, [activeTab]);
+
+  const loadReportList = async () => {
+    setLoading(true);
+    try {
+      console.log("신고 목록 조회 시작...");
+      const data = await getReportList({ page: 0, size: 20 });
+      console.log("신고 목록 조회 성공:", data);
+      setReportList(data?.content || []);
+    } catch (error) {
+      console.error("신고 목록 조회 실패:", error);
+      console.error("에러 상세:", error.response?.data);
+      setReportList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPetStarList = async () => {
+    setLoading(true);
+    try {
+      console.log("펫스타 신청 목록 조회 시작...");
+      const data = await getPetStarApplications({ page: 0, size: 20 });
+      console.log("펫스타 신청 목록 조회 성공:", data);
+      setPetStarList(data?.content || []);
+    } catch (error) {
+      console.error("펫스타 신청 목록 조회 실패:", error);
+      console.error("에러 상세:", error.response?.data);
+      setPetStarList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAdvertiserList = async () => {
+    setLoading(true);
+    try {
+      console.log("광고주 신청 목록 조회 시작...");
+      const data = await getAdvertiserApplications({ page: 0, size: 20 });
+      console.log("광고주 신청 목록 조회 성공:", data);
+      console.log("광고주 목록 데이터 구조:", {
+        data,
+        content: data?.content,
+        length: data?.content?.length,
+        isArray: Array.isArray(data?.content),
+      });
+
+      // 각 광고주의 파일 정보 확인
+      if (data?.content) {
+        data.content.forEach((advertiser, index) => {
+          console.log(`광고주 ${index + 1} 파일 정보:`, {
+            advertiserNo: advertiser.advertiserNo,
+            name: advertiser.name,
+            profileImageUrl: advertiser.profileImageUrl,
+            documentUrl: advertiser.documentUrl,
+            profileOriginalName: advertiser.profileOriginalName,
+            documentOriginalName: advertiser.documentOriginalName,
+          });
+        });
+      }
+      // 이제 백엔드에서 파일 정보가 포함된 데이터를 받으므로 별도 조회 불필요
+      setAdvertiserList(data?.content || []);
+      console.log("광고주 목록 조회 성공 (파일 정보 포함):", data?.content);
+    } catch (error) {
+      console.error("광고주 신청 목록 조회 실패:", error);
+      console.error("에러 상세:", error.response?.data);
+      console.error("에러 상태:", error.response?.status);
+      console.error("에러 메시지:", error.message);
+      setAdvertiserList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showAlert = (message, type = "info") => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setShowAlertModal(true);
+  };
+
+  const showDeleteConfirm = (action, target, title, message) => {
+    setDeleteAction(() => action);
+    setDeleteTarget(target);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteAction && deleteTarget) {
+      deleteAction(deleteTarget);
+    }
+    setShowDeleteModal(false);
+    setDeleteAction(null);
+    setDeleteTarget(null);
+  };
+
+  const handleRestrict = async (reportId) => {
+    try {
+      await approveReport(reportId);
+      showAlert("사용자가 제한되었습니다.", "success");
+      loadReportList(); // 목록 새로고침
+    } catch (error) {
+      console.error("제한 실패:", error);
+      showAlert("제한 처리에 실패했습니다.", "error");
+    }
+  };
+
+  const handleReject = async (reportId, reason) => {
+    try {
+      await rejectReport(reportId, reason);
+      showAlert("신고가 거절되었습니다.", "success");
+      loadReportList(); // 목록 새로고침
+    } catch (error) {
+      console.error("거절 실패:", error);
+      showAlert("거절 처리에 실패했습니다.", "error");
+    }
+  };
+
+  const handlePetStarApprove = async (petNo) => {
+    try {
+      await approvePetStar(petNo);
+      showAlert("펫스타가 승인되었습니다.", "success");
+      loadPetStarList(); // 목록 새로고침
+    } catch (error) {
+      console.error("펫스타 승인 실패:", error);
+      showAlert("펫스타 승인에 실패했습니다.", "error");
+    }
+  };
+
+  const handlePetStarReject = async (petNo, reason) => {
+    try {
+      await rejectPetStar(petNo, reason);
+      showAlert("펫스타 신청이 거절되었습니다.", "success");
+      loadPetStarList(); // 목록 새로고침
+    } catch (error) {
+      console.error("펫스타 거절 실패:", error);
+      showAlert("펫스타 거절에 실패했습니다.", "error");
+    }
+  };
+
+  const handleAdvertiserApprove = async (advertiserId) => {
+    try {
+      await approveAdvertiser(advertiserId);
+      showAlert("광고주가 승인되었습니다.", "success");
+      loadAdvertiserList(); // 목록 새로고침
+    } catch (error) {
+      console.error("광고주 승인 실패:", error);
+      showAlert("광고주 승인에 실패했습니다.", "error");
+    }
+  };
+
+  const handleAdvertiserReject = async (advertiserId, reason) => {
+    try {
+      await rejectAdvertiser(advertiserId, reason);
+      showAlert("광고주 신청이 거절되었습니다.", "success");
+      loadAdvertiserList(); // 목록 새로고침
+    } catch (error) {
+      console.error("광고주 거절 실패:", error);
+      showAlert("광고주 거절에 실패했습니다.", "error");
+    }
+  };
+
+  // 파일 모달 열기 함수 (이미 데이터가 있으므로 단순화)
+  const loadAdvertiserFiles = (advertiser) => {
+    console.log("파일 모달 열기:", advertiser);
+    setSelectedAdvertiserFiles([advertiser]);
+    setShowFileModal(true);
+  };
+  const handleApprove = () => {
+    showDeleteConfirm(
+      () => showAlert("승인되었습니다.", "success"),
+      null,
+      "승인 확인",
+      "승인하시겠습니까?"
     );
+  };
+
+  return (
+    <>
+      {/* Main Content */}
+      <main className={styles.main}>
+        <div className={styles.content}>
+          {/* Navigation Tabs */}
+          <div className={styles.tabNavigation}>
+            <nav className={styles.tabs}>
+              <button
+                className={`${styles.tab} ${
+                  activeTab === "펫스타 지원" ? styles.active : ""
+                }`}
+                onClick={() => setActiveTab("펫스타 지원")}
+              >
+                펫스타 지원자 목록
+              </button>
+              <button
+                className={`${styles.tab} ${
+                  activeTab === "신고당한 회원" ? styles.active : ""
+                }`}
+                onClick={() => setActiveTab("신고당한 회원")}
+              >
+                신고당한 회원 목록
+              </button>
+              <button
+                className={`${styles.tab} ${
+                  activeTab === "광고주 회원 승인" ? styles.active : ""
+                }`}
+                onClick={() => setActiveTab("광고주 회원 승인")}
+              >
+                광고주 회원 신청 목록
+              </button>
+            </nav>
+          </div>
+
+          {/* Search and Filter */}
+          <div className={styles.searchSection}>
+            <div>
+              {activeTab === "펫스타 지원" ? (
+                <h2 className={styles.sectionTitle}>펫스타 지원자 목록</h2>
+              ) : activeTab === "신고당한 회원" ? (
+                <h2 className={styles.sectionTitle}>신고당한 회원 목록</h2>
+              ) : (
+                <h2 className={styles.sectionTitle}>광고주 회원 신청 목록</h2>
+              )}
+            </div>
+            <div className={styles.rightControls}>
+              <div className={styles.searchContainer}>
+                <input
+                  type="text"
+                  placeholder="검색어를 입력하세요."
+                  className={styles.searchInput}
+                />
+                <div className={styles.searchIcon}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M11 11L15 15"
+                      stroke="#9CA3AF"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx="7"
+                      cy="7"
+                      r="6"
+                      stroke="#9CA3AF"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </div>
+              </div>
+              {activeTab === "신고당한 회원" ? (
+                <select className={styles.sortSelect}>
+                  <option>광고주</option>
+                  <option>일반회원</option>
+                </select>
+              ) : (
+                <select className={styles.sortSelect}>
+                  <option>최신순</option>
+                  <option>오래된순</option>
+                </select>
+              )}
+            </div>
+          </div>
+          {/* Product List */}
+          <section className={styles.productSection}>
+            <div className={styles.productList}>
+              {activeTab === "펫스타 지원" &&
+                (loading ? (
+                  <div>펫스타 신청 목록을 불러오는 중...</div>
+                ) : petStarList.length === 0 ? (
+                  <div>펫스타 신청이 없습니다.</div>
+                ) : (
+                  getCurrentItems(petStarList).map((petstar, index) => (
+                    <div
+                      key={petstar.petNo || `petstar-${index}`}
+                      className={styles.productCard}
+                    >
+                      <div className={styles.productContent}>
+                        <div className={styles.productImage}>
+                          <img
+                            src={petstar.imageUrl || "/petstar/petstar1.jpeg"}
+                            alt={petstar.petName}
+                            onError={(e) => {
+                              e.currentTarget.src = "/petstar/petstar1.jpeg";
+                            }}
+                          />
+                        </div>
+                        <div className={styles.productInfo}>
+                          <h3 className={styles.productTitle}>
+                            {petstar.petName}
+                          </h3>
+                          <p className={styles.productDescription}>
+                            {petstar.petType} | {petstar.age}세 |{" "}
+                            {petstar.petGender}
+                          </p>
+                          <div className={styles.companyInfo}>
+                            <img
+                              src="/owner/owner1.jpeg"
+                              className={styles.companyLogo}
+                              onError={(e) => {
+                                e.currentTarget.src = "/owner/owner1.jpeg";
+                              }}
+                            />
+                            <div className={styles.companyDetails}>
+                              <span className={styles.companyName}>
+                                {petstar.userName}
+                              </span>
+                              <span className={styles.companyType}>
+                                {petstar.userPhone} | {petstar.userEmail}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        className={styles.productActions}
+                        style={{ width: "265px" }}
+                      >
+                        <button
+                          className={styles.approveBtn}
+                          onClick={() => {
+                            showDeleteConfirm(
+                              handlePetStarApprove,
+                              petstar.petNo,
+                              "펫스타 승인",
+                              "이 펫스타를 승인하시겠습니까?"
+                            );
+                          }}
+                        >
+                          승인하기
+                        </button>
+                        <button
+                          className={styles.rejectBtn}
+                          onClick={() => {
+                            setSelectedPetStar(petstar);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          거절하기
+                        </button>
+                        <PopupModal
+                          isOpen={isModalOpen}
+                          onClose={() => {
+                            setIsModalOpen(false);
+                            setSelectedPetStar(null);
+                          }}
+                          onDelete={(reason) => {
+                            if (selectedPetStar) {
+                              handlePetStarReject(
+                                selectedPetStar.petNo,
+                                reason
+                              );
+                            }
+                            setIsModalOpen(false);
+                            setSelectedPetStar(null);
+                          }}
+                          actionType="petstarreject"
+                          targetKeyword={
+                            selectedPetStar ? selectedPetStar.petName : ""
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))
+                ))}
+
+              {activeTab === "신고당한 회원" &&
+                (loading ? (
+                  <div>신고 목록을 불러오는 중...</div>
+                ) : reportList.length === 0 ? (
+                  <div>신고된 회원이 없습니다.</div>
+                ) : (
+                  getCurrentItems(reportList).map((report, index) => (
+                    <div
+                      key={report.reportId || `report-${index}`}
+                      className={styles.productCard}
+                    >
+                      <div className={styles.productContent}>
+                        <div className={styles.productImage}>
+                          <img
+                            src={
+                              report.targetProfileImage ||
+                              "/user/avatar-placeholder.jpg"
+                            }
+                            alt="신고 대상"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                "/user/avatar-placeholder.jpg";
+                            }}
+                          />
+                        </div>
+                        <div className={styles.productInfo}>
+                          <div
+                            className={styles.resonleft}
+                            style={{ fontSize: "larger" }}
+                          >
+                            신고 대상: {report.targetNickname} (
+                            {report.targetType}: {report.targetId})
+                          </div>
+                          <div className={styles.reasonleft}>
+                            신고 사유: {report.reason}
+                          </div>
+                          <div
+                            className={styles.reasonright}
+                            style={{ fontSize: "larger" }}
+                          >
+                            신고자: {report.reporterNickname} (
+                            {report.reporterType}: {report.reporterId})
+                          </div>
+                          <div className={styles.reasonleft}>
+                            신고일:{" "}
+                            {new Date(report.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className={styles.reasonleft}>
+                            상태: {report.status}
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        className={styles.productActions}
+                        style={{ width: "265px" }}
+                      >
+                        <button
+                          className={styles.deleteBtn}
+                          onClick={() => {
+                            showDeleteConfirm(
+                              handleRestrict,
+                              report.reportId,
+                              "제한",
+                              "제한하시겠습니까?"
+                            );
+                          }}
+                          disabled={report.status !== "BEFORE"}
+                        >
+                          제한하기
+                        </button>
+                        <button
+                          className={styles.deleteBtn}
+                          onClick={() => {
+                            setSelectedReport(report);
+                            setIsModalOpen(true);
+                          }}
+                          disabled={report.status !== "BEFORE"}
+                        >
+                          거절하기
+                        </button>
+                        <PopupModal
+                          isOpen={isModalOpen}
+                          onClose={() => {
+                            setIsModalOpen(false);
+                            setSelectedReport(null);
+                          }}
+                          onDelete={(reason) => {
+                            if (selectedReport) {
+                              handleReject(selectedReport.reportId, reason);
+                            }
+                            setIsModalOpen(false);
+                            setSelectedReport(null);
+                          }}
+                          actionType="reportreject"
+                          targetKeyword={
+                            selectedReport ? selectedReport.reason : ""
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))
+                ))}
+              {activeTab === "광고주 회원 승인" && (
+                <>
+                  {console.log("광고주 탭 렌더링:", {
+                    loading,
+                    advertiserListLength: advertiserList.length,
+                    advertiserList,
+                    currentItems: getCurrentItems(advertiserList),
+                  })}
+                  {loading ? (
+                    <div>광고주 신청 목록을 불러오는 중...</div>
+                  ) : advertiserList.length === 0 ? (
+                    <div>광고주 신청이 없습니다.</div>
+                  ) : (
+                    getCurrentItems(advertiserList).map((advertiser, index) => {
+                      console.log(
+                        `렌더링 중 - 광고주 ${advertiser.advertiserNo}:`,
+                        {
+                          advertiser,
+                          profileImageUrl: advertiser.profileImageUrl,
+                          documentUrl: advertiser.documentUrl,
+                        }
+                      );
+                      return (
+                        <div
+                          key={advertiser.advertiserNo || `advertiser-${index}`}
+                          className={styles.productCard}
+                        >
+                          <div
+                            className={styles.productContent}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "20px",
+                            }}
+                          >
+                            {/* 광고주 사진 - 왼쪽 */}
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                minWidth: "120px",
+                                height: "100%",
+                              }}
+                            >
+                              <h4
+                                style={{
+                                  margin: "0 0 8px 0",
+                                  fontSize: "14px",
+                                  color: "#666",
+                                  textAlign: "center",
+                                }}
+                              >
+                                광고주 사진
+                              </h4>
+                              {advertiser.profileImageUrl ? (
+                                <img
+                                  src={advertiser.profileImageUrl}
+                                  alt="광고주 프로필"
+                                  style={{
+                                    width: "100px",
+                                    height: "100px",
+                                    borderRadius: "12px",
+                                    objectFit: "cover",
+                                    border: "3px solid #e9ecef",
+                                    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                                  }}
+                                  onError={(e) => {
+                                    e.currentTarget.src =
+                                      "/user/avatar-placeholder.jpg";
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    width: "100px",
+                                    height: "100px",
+                                    borderRadius: "12px",
+                                    backgroundColor: "#f8f9fa",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    border: "3px solid #e9ecef",
+                                    color: "#999",
+                                    fontSize: "12px",
+                                    textAlign: "center",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                                  }}
+                                >
+                                  프로필 없음
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 광고주 정보 영역 - 사진 오른쪽 */}
+                            <div
+                              className={styles.productInfo}
+                              style={{
+                                flex: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "8px",
+                              }}
+                            >
+                              <div
+                                className={styles.resonleft}
+                                style={{
+                                  fontSize: "20px",
+                                  fontWeight: "bold",
+                                  marginBottom: "12px",
+                                  color: "#333",
+                                }}
+                              >
+                                {advertiser.name}
+                              </div>
+
+                              <div
+                                className={styles.reasonleft}
+                                style={{ marginBottom: "6px", color: "#666" }}
+                              >
+                                <strong>이메일:</strong>{" "}
+                                {advertiser.email || "X"}
+                              </div>
+
+                              <div
+                                className={styles.reasonleft}
+                                style={{ marginBottom: "6px", color: "#666" }}
+                              >
+                                <strong>사업자 등록번호:</strong>{" "}
+                                {advertiser.businessNumber}
+                              </div>
+
+                              <div
+                                className={styles.reasonleft}
+                                style={{ marginBottom: "6px", color: "#666" }}
+                              >
+                                <strong>전화번호:</strong> {advertiser.phone}
+                              </div>
+
+                              <div
+                                className={styles.reasonleft}
+                                style={{ marginBottom: "6px", color: "#666" }}
+                              >
+                                <strong>웹사이트:</strong>{" "}
+                                {advertiser.website ? (
+                                  <a
+                                    href={
+                                      advertiser.website.startsWith("http")
+                                        ? advertiser.website
+                                        : `https://${advertiser.website}`
+                                    }
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      color: "#007bff",
+                                      textDecoration: "underline",
+                                      marginLeft: "8px",
+                                    }}
+                                  >
+                                    {advertiser.website}
+                                  </a>
+                                ) : (
+                                  <span
+                                    style={{ color: "#999", marginLeft: "8px" }}
+                                  >
+                                    없음
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* 파일 보기 버튼 - 웹사이트 아래에 배치 */}
+                              <div
+                                className={styles.reasonleft}
+                                style={{ marginTop: "12px" }}
+                              >
+                                <button
+                                  className={styles.fileBtn}
+                                  onClick={() =>
+                                    loadAdvertiserFiles(advertiser)
+                                  }
+                                  disabled={loadingFiles}
+                                  style={{
+                                    backgroundColor: "white",
+                                    color: "black",
+                                    border: "1px solid #ddd",
+                                    padding: "6px 12px",
+                                    borderRadius: "20px",
+                                    cursor: "pointer",
+                                    width: "50%",
+                                    fontSize: "14px",
+                                    fontWeight: "500",
+                                    transition: "all 0.2s",
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.target.style.backgroundColor = "#f8f9fa";
+                                    e.target.style.borderColor = "#adb5bd";
+                                    e.target.style.transform =
+                                      "translateY(-1px)";
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.target.style.backgroundColor = "white";
+                                    e.target.style.borderColor = "#ddd";
+                                    e.target.style.transform = "translateY(0)";
+                                  }}
+                                >
+                                  {loadingFiles ? "로딩중..." : "파일 보기"}
+                                </button>
+                              </div>
+
+                              {advertiser.reason && (
+                                <div
+                                  className={styles.reasonleft}
+                                  style={{ color: "#dc3545", marginTop: "8px" }}
+                                >
+                                  <strong>거절 사유:</strong>{" "}
+                                  {advertiser.reason}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div
+                            className={styles.productActions}
+                            style={{ width: "265px" }}
+                          >
+                            <button
+                              className={styles.approveBtn}
+                              onClick={() => {
+                                showDeleteConfirm(
+                                  handleAdvertiserApprove,
+                                  advertiser.advertiserNo,
+                                  "광고주 승인",
+                                  "이 광고주를 승인하시겠습니까?"
+                                );
+                              }}
+                            >
+                              승인하기
+                            </button>
+                            <button
+                              className={styles.rejectBtn}
+                              onClick={() => {
+                                setSelectedAdvertiser(advertiser);
+                                setIsModalOpen(true);
+                              }}
+                            >
+                              거절하기
+                            </button>
+                            <PopupModal
+                              isOpen={isModalOpen}
+                              onClose={() => {
+                                setIsModalOpen(false);
+                                setSelectedAdvertiser(null);
+                              }}
+                              onDelete={(reason) => {
+                                if (selectedAdvertiser) {
+                                  handleAdvertiserReject(
+                                    selectedAdvertiser.advertiserNo,
+                                    reason
+                                  );
+                                }
+                                setIsModalOpen(false);
+                                setSelectedAdvertiser(null);
+                              }}
+                              actionType="advertiserreject"
+                              targetKeyword={
+                                selectedAdvertiser
+                                  ? selectedAdvertiser.name
+                                  : ""
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* 페이지네이션 */}
+          {((activeTab === "펫스타 지원" &&
+            petStarList.length > itemsPerPage) ||
+            (activeTab === "신고당한 회원" &&
+              reportList.length > itemsPerPage) ||
+            (activeTab === "광고주 회원 승인" &&
+              advertiserList.length > itemsPerPage)) && (
+            <div className={styles.pagination}>
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={styles.paginationButton}
+              >
+                이전
+              </button>
+
+              {(() => {
+                const totalPages = getTotalPages(
+                  activeTab === "펫스타 지원"
+                    ? petStarList
+                    : activeTab === "신고당한 회원"
+                    ? reportList
+                    : advertiserList
+                );
+
+                const pages = [];
+                const maxVisiblePages = 5;
+                let startPage = Math.max(
+                  1,
+                  currentPage - Math.floor(maxVisiblePages / 2)
+                );
+                let endPage = Math.min(
+                  totalPages,
+                  startPage + maxVisiblePages - 1
+                );
+
+                if (endPage - startPage + 1 < maxVisiblePages) {
+                  startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button
+                      key={i}
+                      onClick={() => handlePageChange(i)}
+                      className={`${styles.paginationButton} ${
+                        currentPage === i ? styles.active : ""
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+
+                return pages;
+              })()}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={
+                  currentPage ===
+                  getTotalPages(
+                    activeTab === "펫스타 지원"
+                      ? petStarList
+                      : activeTab === "신고당한 회원"
+                      ? reportList
+                      : advertiserList
+                  )
+                }
+                className={styles.paginationButton}
+              >
+                다음
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* 알림 모달 */}
+      <AlertModal
+        isOpen={showAlertModal}
+        onClose={() => setShowAlertModal(false)}
+        title="알림"
+        message={alertMessage}
+        type={alertType}
+        confirmText="확인"
+      />
+
+      {/* 삭제 확인 모달 */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title="확인"
+        message="정말로 진행하시겠습니까?"
+        confirmText="확인"
+        cancelText="취소"
+      />
+
+      {/* 파일 모달 */}
+      {showFileModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowFileModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "20px",
+              borderRadius: "8px",
+              maxWidth: "600px",
+              maxHeight: "80vh",
+              overflow: "auto",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowFileModal(false)}
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                background: "none",
+                border: "none",
+                fontSize: "20px",
+                cursor: "pointer",
+              }}
+            >
+              ✕
+            </button>
+
+            <h3 style={{ marginBottom: "20px" }}>업로드된 파일</h3>
+
+            {selectedAdvertiserFiles.length === 0 ? (
+              <p>업로드된 파일이 없습니다.</p>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "15px",
+                }}
+              >
+                {selectedAdvertiserFiles.map((advertiserWithFiles, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      padding: "15px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "15px",
+                    }}
+                  >
+                    {advertiserWithFiles.profileImageUrl && (
+                      <>
+                        <img
+                          src={advertiserWithFiles.profileImageUrl}
+                          alt="프로필 사진"
+                          style={{
+                            width: "60px",
+                            height: "60px",
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            border: "2px solid #ddd",
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              "/user/avatar-placeholder.jpg";
+                          }}
+                        />
+                        <div>
+                          <h4 style={{ margin: "0 0 5px 0" }}>프로필 사진</h4>
+                          <p style={{ margin: 0, color: "#666" }}>
+                            {advertiserWithFiles.profileOriginalName}
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    {advertiserWithFiles.documentUrl && (
+                      <>
+                        <div
+                          style={{
+                            width: "60px",
+                            height: "60px",
+                            backgroundColor: "#f8f9fa",
+                            borderRadius: "8px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "24px",
+                          }}
+                        >
+                          📄
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: "0 0 5px 0" }}>참고 문서</h4>
+                          <p style={{ margin: "0 0 10px 0", color: "#666" }}>
+                            {advertiserWithFiles.documentOriginalName}
+                          </p>
+                          <a
+                            href={advertiserWithFiles.documentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: "#007bff",
+                              textDecoration: "underline",
+                              fontSize: "14px",
+                            }}
+                          >
+                            파일 다운로드
+                          </a>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

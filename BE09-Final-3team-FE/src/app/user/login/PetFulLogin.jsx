@@ -1,18 +1,115 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./PetFulLogin.module.css";
 import Image from "next/image";
+import { login } from "../../../api/userAuthApi";
 
 export default function PetFulLogin() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", { email, password });
+    setError("");
+    setPasswordError("");
+    setLoading(true);
+
+    try {
+      console.log("로그인 시도:", { email });
+
+      const data = await login(email, password);
+
+      console.log("로그인 응답 데이터:", data);
+
+      // 로그인 성공 - 토큰 저장
+      const authData = data.data; // ApiResponse 구조에서 실제 데이터 추출
+
+      if (authData && authData.accessToken) {
+        localStorage.setItem("token", authData.accessToken);
+        localStorage.setItem("refreshToken", authData.refreshToken);
+        localStorage.setItem("userEmail", authData.email);
+        localStorage.setItem("userNickname", authData.name || ""); // 닉네임 저장
+        localStorage.setItem("userNo", authData.userNo || ""); // 사용자 번호 저장
+
+        // 토큰 만료 시간 저장 (선택사항)
+        if (authData.accessExpiresAt) {
+          localStorage.setItem(
+            "accessTokenExpiresAt",
+            authData.accessExpiresAt
+          );
+        }
+        if (authData.refreshExpiresAt) {
+          localStorage.setItem(
+            "refreshTokenExpiresAt",
+            authData.refreshExpiresAt
+          );
+        }
+
+        // 사용자 타입 확인하여 Admin인 경우 관리자 페이지로 리다이렉트
+        const userType =
+          authData.userType ||
+          authData.role ||
+          authData.user_type ||
+          data.userType ||
+          data.role ||
+          data.user_type ||
+          authData.type ||
+          data.type;
+
+        if (
+          userType === "Admin" ||
+          userType === "ADMIN" ||
+          userType === "admin"
+        ) {
+          window.location.href = "/admin";
+        } else {
+          // 일반 사용자인 경우 기존 로직 실행
+          // 커스텀 이벤트 발생 (헤더 업데이트용)
+          window.dispatchEvent(new Event("loginStatusChanged"));
+
+          // 홈페이지로 이동
+          router.replace("/");
+        }
+      } else {
+        setError("로그인 응답에 토큰이 없습니다.");
+      }
+    } catch (error) {
+      console.error("로그인 에러:", error);
+      if (error.response) {
+        // axios 에러 응답 처리
+        const { status, data } = error.response;
+        if (status === 401) {
+          setPasswordError("비밀번호가 틀렸습니다.");
+        } else if (status === 400) {
+          setError(data.message || "로그인 요청이 올바르지 않습니다.");
+        } else if (status === 500) {
+          if (data.message && data.message.includes("Bad credentials")) {
+            setPasswordError("비밀번호가 틀렸습니다.");
+          } else {
+            setError("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+          }
+        } else {
+          setError(data.message || "로그인에 실패했습니다. 다시 시도해주세요.");
+        }
+      } else if (
+        error.name === "TypeError" &&
+        error.message.includes("fetch")
+      ) {
+        setError("네트워크 연결을 확인해주세요.");
+      } else {
+        setError("로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -48,6 +145,7 @@ export default function PetFulLogin() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
 
@@ -62,11 +160,13 @@ export default function PetFulLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading}
               />
               <button
                 type="button"
                 className={styles.passwordToggle}
                 onClick={togglePasswordVisibility}
+                disabled={loading}
               >
                 <Image
                   src={showPassword ? "/user/eye.svg" : "/user/eye-closed.svg"}
@@ -77,23 +177,34 @@ export default function PetFulLogin() {
                 />
               </button>
             </div>
+            {/* Password Error Message */}
+            {passwordError && (
+              <div className={styles.passwordErrorMessage}>{passwordError}</div>
+            )}
           </div>
 
+          {/* Error Message */}
+          {error && <div className={styles.errorMessage}>{error}</div>}
+
           {/* Login Button */}
-          <button type="submit" className={styles.loginButton}>
-            로그인
+          <button
+            type="submit"
+            className={styles.loginButton}
+            disabled={loading}
+          >
+            {loading ? "로그인 중..." : "로그인"}
           </button>
         </form>
 
         {/* Footer Links */}
         <div className={styles.footer}>
           <div className={styles.linkGroup}>
-            <a href="#" className={styles.link}>
+            <Link href="/user/signup" className={styles.link}>
               회원가입
-            </a>
-            <a href="#" className={styles.link}>
+            </Link>
+            <Link href="/user/passwordfind" className={styles.link}>
               비밀번호 찾기
-            </a>
+            </Link>
           </div>
         </div>
 
