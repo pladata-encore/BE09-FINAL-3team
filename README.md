@@ -330,7 +330,7 @@ graph TB
 
 | 기술 | 버전 |
 |------|------|
-| ![NAVER CLOVA](https://img.shields.io/badge/NAVER%20CLOVA-03C75A?style=for-the-badge&logo=naver&logoColor=white) | 4.21.0 |
+| ![Selenium WebDriver](https://img.shields.io/badge/Selenium-43B02A?style=for-the-badge&logo=selenium&logoColor=white)](https://www.selenium.dev/) | 4.21.0 |
 
 </td>
 <td valign="top" align="center">
