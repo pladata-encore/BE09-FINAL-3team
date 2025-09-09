@@ -117,7 +117,7 @@ graph TB
 | **Notification Service** | 임현우 | 알림 서비스, 푸시 알림, 이메일 발송    |
 | **Pet Service**          | 정승원 | 반려동물 관리, 펫스타 신청, 포트폴리오 |
 | **SNS Service**          | 이지용 | 인스타그램 연동, SNS 게시물 분석       |
-| **Health Service**       | 임나연 | 활동 관리, 투약/돌봄 일정 관리리         |
+| **Health Service**       | 임나연 | 활동 관리, 투약/돌봄 일정 관리       |
 | **Discovery Service**    | 이지용 | Eureka 서버, 서비스 등록/발견          |
 | **Config Service**       | 이지용 | 공통 환경설정,repo파일로 설정 따로 관리            |
 ---
