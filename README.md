@@ -529,6 +529,12 @@ POST /notifications/subscribe # 알림 구독
 
 ## 🚀 배포
 
+
+### 🐶 SPA 배포
+- 개발/프리뷰: [https://petful-teal.vercel.app](https://petful-teal.vercel.app)
+- 실서비스: [https://petful.site](https://petful.site)
+
+
 ### 🐳 Docker 배포
 
 ```bash
