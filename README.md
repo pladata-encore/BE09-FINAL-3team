@@ -107,19 +107,19 @@ graph TB
 
 ### 🔧 서비스별 역할
 
-| 서비스명                 | 포트 | 담당자 | 주요 기능                              |
-| ------------------------ | ---- | ------ | -------------------------------------- |
-| **Gateway Service**      | 8080 | 정승원 | API Gateway, 라우팅, 인증, 로드밸런싱  |
-| **User Service**         | 8081 | 정승원 | 회원가입/로그인, JWT 토큰인가, 마이페이지  |
-| **Advertiser Service**   | 8088 | 이나영 | 광고주 관리, 광고 상품 등록/관리       |
-| **Campaign Service**     | 8089 | 이나영 | 캠페인 관리, 체험단 운영, 매칭 시스템  |
-| **Community Service**    | 8090 | 임현우 | 커뮤니티 기능, 게시글/댓글 관리        |
-| **Notification Service** | 8091 | 임현우 | 알림 서비스, 푸시 알림, 이메일 발송    |
-| **Pet Service**          | 8092 | 정승원 | 반려동물 관리, 펫스타 신청, 포트폴리오 |
-| **SNS Service**          | 8093 | 이지용 | 인스타그램 연동, SNS 게시물 분석       |
-| **Health Service**       | 8087 | 임나연 | 헬스체크, 모니터링, 건강 관리          |
-| **Discovery Service**    | 8761 | 이지용 | Eureka 서버, 서비스 등록/발견          |
-| **Config Service**       | 8888 | 이지용 | 공통 환경설정,repo파일로 설정 따로 관리            |
+| 서비스명                 | 담당자 | 주요 기능                              |
+| ------------------------ | ------ | -------------------------------------- |
+| **Gateway Service**      | 정승원 | API Gateway, 라우팅, 인증, 로드밸런싱  |
+| **User Service**         | 정승원 | 회원가입/로그인, JWT 토큰인가, 마이페이지  |
+| **Advertiser Service**   | 이나영 | 광고주 관리, 광고 상품 등록/관리       |
+| **Campaign Service**     | 이나영 | 캠페인 관리, 체험단 운영, 매칭 시스템  |
+| **Community Service**    | 임현우 | 커뮤니티 기능, 게시글/댓글 관리        |
+| **Notification Service** | 임현우 | 알림 서비스, 푸시 알림, 이메일 발송    |
+| **Pet Service**          | 정승원 | 반려동물 관리, 펫스타 신청, 포트폴리오 |
+| **SNS Service**          | 이지용 | 인스타그램 연동, SNS 게시물 분석       |
+| **Health Service**       | 임나연 | 헬스체크, 모니터링, 건강 관리          |
+| **Discovery Service**    | 이지용 | Eureka 서버, 서비스 등록/발견          |
+| **Config Service**       | 이지용 | 공통 환경설정,repo파일로 설정 따로 관리            |
 ---
 ## 📚 문서
 
@@ -330,7 +330,7 @@ graph TB
 
 | 기술 | 버전 |
 |------|------|
-| 추가 예정 | 추가 예정 |
+| ![NAVER CLOVA](https://img.shields.io/badge/NAVER%20CLOVA-03C75A?style=for-the-badge&logo=naver&logoColor=white) | 4.21.0 |
 
 </td>
 <td valign="top" align="center">
@@ -339,7 +339,7 @@ graph TB
 
 | 기술 | 버전 |
 |------|------|
-| 추가 예정 | 추가 예정 |
+| ![NAVER CLOVA](https://img.shields.io/badge/NAVER%20CLOVA-03C75A?style=for-the-badge&logo=naver&logoColor=white) | HCX-005 |
 
 </td>
 </tr>
