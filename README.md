@@ -125,7 +125,6 @@ graph TB
 
 ### 📋 프로젝트 문서
 
-- [MSA 아키텍처 설계](https://www.notion.so/coffit23/MSA-215a02b1ffb1818d91fece9cc5192253)
 - [인터페이스 설계서](http://docs.google.com/spreadsheets/d/1YJs2AJoIm8an-uj52x9yw4tmWIIbqlIaXEPFqDg0i3k/edit?usp=drive_web&ouid=102742334311949135580)
 - [CI/CD 설계서](https://docs.google.com/document/d/1FNXlXXRqx7InF55VoobFvzX4uO8FSdpyaQAvSlmqYcU/edit?tab=t.0)
 
